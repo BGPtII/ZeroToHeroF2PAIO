@@ -1,10 +1,9 @@
-package services;
+package data;
 
 import framework.SCScript;
-import framework.ScriptState;
-import global.PlayerData;
+import org.dreambot.api.utilities.Logger;
 
-public class BankingService {
+public class BankingData {
 
     private final int[] WITHDRAW_ID;
     private final int[] WITHDRAW_QTY;
@@ -19,7 +18,7 @@ public class BankingService {
 
     private boolean withdrawModeIsNoted;
 
-    public BankingService() {
+    public BankingData() {
         WITHDRAW_ID = new int[28];
         WITHDRAW_QTY = new int[28];
         DEPOSIT_ID = new int[28];
@@ -34,6 +33,7 @@ public class BankingService {
     public void addItemToDeposit(int id, int qty) {
         DEPOSIT_ID[depositSize] = id;
         DEPOSIT_QTY[depositSize++] = qty;
+        Logger.log("Added toDeposit, id: " + id + ", qty: " + qty);
     }
 
     public byte getWithdrawSize() {
@@ -50,7 +50,7 @@ public class BankingService {
         depositSize = 0;
     }
 
-    public int getDepositId(byte index) {
+    public int getDepositID(int index) {
         return DEPOSIT_ID[index];
     }
     public int getDepositQty(byte index) {
@@ -81,13 +81,7 @@ public class BankingService {
     }
 
     public boolean bankingShouldBeToggled() { // Has items queued up to be banked
-        return depositSize != 0 || withdrawSize != 0 || dpAllEqpInit;
-    }
-
-    public void startBanking() {
-        PlayerData.stateToReturnTo = SCScript.scriptState;
-
-        SCScript.scriptState = ScriptState.BANKING;
+        return depositSize != 0 || withdrawSize != 0 || dpAllEqpInit || dpAllInvInit;
     }
 
     public void toggleWithdrawMode(boolean isNoted) {
@@ -95,6 +89,36 @@ public class BankingService {
     }
     public boolean getWithdrawModeIsNoted() {
         return withdrawModeIsNoted;
+    }
+
+    public int getWithdrawID(int index) {
+        return WITHDRAW_ID[index];
+    }
+    public int getWithdrawQty(int index) {
+        return WITHDRAW_QTY[index];
+    }
+
+    public void shuffleDeposit() {
+        for (int i = depositSize - 1; i > 0; i--) {
+            int j = SCScript.SECURE_RANDOM.nextInt(i + 1);
+            int tmpID = DEPOSIT_ID[i];
+            int tmpQty = DEPOSIT_QTY[i];
+            DEPOSIT_ID[i] = DEPOSIT_ID[j];
+            DEPOSIT_QTY[i] = DEPOSIT_QTY[j];
+            DEPOSIT_ID[j] = tmpID;
+            DEPOSIT_QTY[j] = tmpQty;
+        }
+    }
+    public void shuffleWithdraw() {
+        for (int i = withdrawSize - 1; i > 0; i--) {
+            int j = SCScript.SECURE_RANDOM.nextInt(i + 1);
+            int tmpID = WITHDRAW_ID[i];
+            int tmpQty = WITHDRAW_QTY[i];
+            WITHDRAW_ID[i] = WITHDRAW_ID[j];
+            WITHDRAW_QTY[i] = WITHDRAW_QTY[j];
+            WITHDRAW_ID[j] = tmpID;
+            WITHDRAW_QTY[j] = tmpQty;
+        }
     }
 
 }
