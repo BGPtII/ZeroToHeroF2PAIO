@@ -1,0 +1,26 @@
+package loopinterceptors;
+
+import data.global.ScriptData;
+import framework.LoopInterceptor;
+import org.dreambot.api.methods.dialogues.Dialogues;
+
+public class ContinueDialogueLI extends LoopInterceptor {
+
+    public ContinueDialogueLI() {
+        super(Dialogues::canContinue);
+    }
+
+    @Override
+    public int handle() {
+        if (ScriptData.rollChance(50)) {
+            if (Dialogues.clickContinue()) {
+                return ScriptData.returnMSNormal();
+            }
+        }
+        else if (Dialogues.continueDialogue()) {
+            return ScriptData.returnMSNormal();
+        }
+        return ScriptData.returnMSFast();
+    }
+
+}

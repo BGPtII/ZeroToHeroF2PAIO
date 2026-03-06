@@ -1,6 +1,5 @@
 package data.global;
 
-import framework.SCScript;
 import org.dreambot.api.methods.combat.CombatStyle;
 import org.dreambot.api.methods.container.impl.Inventory;
 import org.dreambot.api.methods.container.impl.bank.Bank;
@@ -10,9 +9,19 @@ import org.dreambot.api.methods.skills.Skill;
 import org.dreambot.api.methods.skills.Skills;
 import org.dreambot.api.utilities.Logger;
 
-import java.util.Arrays;
-
 public class PlayerData {
+
+    public static int targetAttackLevel;
+    public static int targetStrengthLevel;
+    public static int targetDefenceLevel;
+    public static int targetWoodcuttingLevel;
+    public static int targetMiningLevel;
+    public static int targetRunecraftingLevel;
+    public static int targetFishingLevel;
+    public static int targetRangedLevel;
+    public static int targetFiremakingLevel;
+    public static int targetSmithingLevel;
+    public static int targetCookingLevel;
 
     public static int axe;
     public static boolean canEquipAxe;
@@ -24,21 +33,22 @@ public class PlayerData {
     public static int bestPickaxeAvail;
     public static boolean canEquipBestPickaxeAvail;
 
-    public static int[] runecraftMediums = new int[4]; // Tiara or talisman - Number determined by linear training steps
-    public static int currentRunecraftMedium;
-    public static void initializeCurrentRunecraftMedium(int runecraftLevel) {
-        if (runecraftLevel >= 20) {
-            currentRunecraftMedium = runecraftMediums[3];
+    public static int[] runecraftingMediums = new int[4]; // Tiara or talisman - Number determined by linear training steps
+    public static int currentRunecraftingMedium;
+    public static void initializeCurrentRunecraftMedium(int runecraftingLevel) {
+        if (runecraftingLevel >= 20) {
+            currentRunecraftingMedium = runecraftingMediums[3];
         }
-        else if (runecraftLevel >= 14) {
-            currentRunecraftMedium = runecraftMediums[2];
+        else if (runecraftingLevel >= 14) {
+            currentRunecraftingMedium = runecraftingMediums[2];
         }
-        else if (runecraftLevel >= 9) {
-            currentRunecraftMedium = runecraftMediums[1];
+        else if (runecraftingLevel >= 9) {
+            currentRunecraftingMedium = runecraftingMediums[1];
         }
         else {
-            currentRunecraftMedium = runecraftMediums[0];
+            currentRunecraftingMedium = runecraftingMediums[0];
         }
+        Logger.log("currentRunecraftMedium: " + currentRunecraftingMedium);
     }
 
     public static int food;
@@ -64,7 +74,7 @@ public class PlayerData {
         int low = (int) Math.ceil(0.25 * Skills.getRealLevel(Skill.HITPOINTS));
         int high = Skills.getRealLevel(Skill.HITPOINTS) - foodHP;
         Logger.log("low: " + low + ", high: " + high);
-        eatFoodHPTrs = SCScript.SECURE_RANDOM.nextInt(high - low + 1) + low;
+        eatFoodHPTrs = ScriptData.SECURE_RANDOM.nextInt(high - low + 1) + low;
         Logger.log("eatFoodHPTrs: " + eatFoodHPTrs);
     }
 
@@ -88,10 +98,6 @@ public class PlayerData {
         return Bank.contains(id) || Inventory.contains(id) || Equipment.contains(id);
     }
 
-    public static int getTotalHeldCount(int id) { // Bank + Equipment + Inventory
-        return Bank.count(id) + Inventory.count(id) + Equipment.count(id);
-    }
-
     public static void initializeAxe(int woodcuttingLevel, int attackLevel) {
         if (woodcuttingLevel >= 41) {
             axe = 1359;
@@ -110,9 +116,10 @@ public class PlayerData {
             canEquipAxe = attackLevel >= 10;
         }
         else {
-            axe = 1349;
+            axe = 1349; // Iron
             canEquipAxe = true;
         }
+        Logger.log("initialized axe, canEquipAxe: " + canEquipAxe);
     }
     public static void initializeBestAxeAvail(int woodcuttingLevel, int attackLevel) {
         if (woodcuttingLevel >= 41 && playerHasItemID(1359)) {
@@ -172,10 +179,6 @@ public class PlayerData {
             meleeLegs = 1081;
             meleeShield = 1191;
         }
-        Logger.log("meleeHat: " + meleeHat);
-        Logger.log("meleeChest: " + meleeChest);
-        Logger.log("meleeLegs: " + meleeLegs);
-        Logger.log("meleeShield: " + meleeShield);
     }
     public static void initializeMeleeWeapon(int attackLevel) {
         if (attackLevel >= 41) {
@@ -193,7 +196,6 @@ public class PlayerData {
         else { // Iron
             meleeWeapon = 1323;
         }
-        Logger.log("meleeWeapon: " + meleeWeapon);
     }
 
     public static void initializePickaxe(int miningLevel, int attackLevel) {
@@ -217,7 +219,7 @@ public class PlayerData {
             pickaxe = 1267;
             canEquipPickaxe = true;
         }
-        Logger.log("pickaxe: " + pickaxe);
+        Logger.log("initialized pickaxe, canEquipPickaxe: " + canEquipPickaxe);
     }
     public static void initializeBestPickaxeAvail(int miningLevel, int attackLevel) {
         if (miningLevel >= 41 && playerHasItemID(1275)) {
@@ -253,7 +255,6 @@ public class PlayerData {
         else {
             rangedHat = 1167;
         }
-        Logger.log("rangedHat: " + rangedHat);
     }
     public static void initializeRangedChest(int rangedLevel, int defenceLevel) {
         if (rangedLevel >= 40 && defenceLevel >= 40 && FreeQuest.DRAGON_SLAYER_I.isFinished()) {
@@ -268,7 +269,6 @@ public class PlayerData {
         else {
             rangedChest = 1129;
         }
-        Logger.log("rangedChest: " + rangedChest);
     }
     public static void initializeRangedLegs(int rangedLevel) {
         if (rangedLevel >= 40) {
@@ -280,7 +280,6 @@ public class PlayerData {
         else {
             rangedLegs = 1095;
         }
-        Logger.log("rangedLegs: " + rangedLegs);
     }
     public static void initializeRangedWeaponArrows(int rangedLevel) {
         if (rangedLevel >= 30) {
@@ -295,7 +294,6 @@ public class PlayerData {
             rangedWeapon = 841;
             rangedArrows = 884;
         }
-        Logger.log("rangedWeapon: " + rangedWeapon + ", rangedArrows: " + rangedArrows);
     }
     public static void initializeRangedHands(int rangedLevel) {
         if (rangedLevel >= 40) {
@@ -304,7 +302,6 @@ public class PlayerData {
         else {
             rangedHands = 1063;
         }
-        Logger.log("rangedHands: " + rangedHands);
     }
 
     public static CombatStyle meleeCombatStyle;
@@ -350,22 +347,20 @@ public class PlayerData {
                 combatStylePool[poolSize++] = CombatStyle.DEFENCE;
             }
         }
-        Logger.log("combatStylePool: " + Arrays.toString(combatStylePool));
-        meleeCombatStyle = combatStylePool[SCScript.SECURE_RANDOM.nextInt(poolSize)];
-        Logger.log("Chosen meleeCombatStyle: " + meleeCombatStyle);
+        meleeCombatStyle = combatStylePool[ScriptData.SECURE_RANDOM.nextInt(poolSize)];
     }
     public static void determineSwitchMeleeCombatStyleLevel(int attackLevel, int strengthLevel, int defenceLevel) {
         if (attackLevel >= 30 && strengthLevel >= 30 && defenceLevel >= 30) {
-            switchMeleeCombatStyleLevel = SCScript.SECURE_RANDOM.nextInt(7 - 2 + 1) + 2;
+            switchMeleeCombatStyleLevel = ScriptData.SECURE_RANDOM.nextInt(7 - 2 + 1) + 2;
         }
         else if (attackLevel >= 20 && strengthLevel >= 20 && defenceLevel >= 20) {
-            switchMeleeCombatStyleLevel = Math.min(30, SCScript.SECURE_RANDOM.nextInt(7 - 2 + 1) + 2);
+            switchMeleeCombatStyleLevel = Math.min(30, ScriptData.SECURE_RANDOM.nextInt(7 - 2 + 1) + 2);
         }
         else if (attackLevel >= 10 && strengthLevel >= 10 && defenceLevel >= 10) {
-            switchMeleeCombatStyleLevel = Math.min(20, SCScript.SECURE_RANDOM.nextInt(7 - 2 + 1) + 2);
+            switchMeleeCombatStyleLevel = Math.min(20, ScriptData.SECURE_RANDOM.nextInt(7 - 2 + 1) + 2);
         }
         else {
-            switchMeleeCombatStyleLevel = Math.min(10, SCScript.SECURE_RANDOM.nextInt(7 - 2 + 1) + 2);
+            switchMeleeCombatStyleLevel = Math.min(10, ScriptData.SECURE_RANDOM.nextInt(7 - 2 + 1) + 2);
         }
         switch (meleeCombatStyle) {
             case ATTACK:
@@ -378,7 +373,6 @@ public class PlayerData {
                 switchMeleeCombatStyleLevel += defenceLevel;
                 break;
         }
-        Logger.log("switchMeleeCombatStyleLevel: " + switchMeleeCombatStyleLevel);
     }
 
     public static CombatStyle rangedCombatStyle;
@@ -389,23 +383,21 @@ public class PlayerData {
             CombatStyle.RANGED_RAPID,
             CombatStyle.RANGED_DEFENCE
         };
-        rangedCombatStyle = combatStylePool[SCScript.SECURE_RANDOM.nextInt(3)];
-        Logger.log("Chosen rangedCombatStyle: " + rangedCombatStyle);
+        rangedCombatStyle = combatStylePool[ScriptData.SECURE_RANDOM.nextInt(3)];
     }
     public static void determineSwitchRangedCombatStyleLevel(int rangedLevel) {
         if (rangedLevel >= 50) {
-            switchRangedCombatStyleLevel = SCScript.SECURE_RANDOM.nextInt(7 - 2 + 1) + 2;
+            switchRangedCombatStyleLevel = ScriptData.SECURE_RANDOM.nextInt(7 - 2 + 1) + 2;
         }
         else if (rangedLevel >= 30) {
-            switchRangedCombatStyleLevel = Math.min(50, SCScript.SECURE_RANDOM.nextInt(7 - 2 + 1) + 2);
+            switchRangedCombatStyleLevel = Math.min(50, ScriptData.SECURE_RANDOM.nextInt(7 - 2 + 1) + 2);
         }
         else if (rangedLevel >= 20) {
-            switchRangedCombatStyleLevel = Math.min(30, SCScript.SECURE_RANDOM.nextInt(7 - 2 + 1) + 2);
+            switchRangedCombatStyleLevel = Math.min(30, ScriptData.SECURE_RANDOM.nextInt(7 - 2 + 1) + 2);
         }
         else {
-            switchRangedCombatStyleLevel = Math.min(20, SCScript.SECURE_RANDOM.nextInt(7 - 2 + 1) + 2);
+            switchRangedCombatStyleLevel = Math.min(20, ScriptData.SECURE_RANDOM.nextInt(7 - 2 + 1) + 2);
         }
-        Logger.log("switchRangedCombatStyleLevel: " + switchRangedCombatStyleLevel);
     }
 
 }
