@@ -7,7 +7,7 @@ import org.dreambot.api.methods.interactive.Players;
 public class WalkToCurrentAreaLI extends LoopInterceptor {
 
     public WalkToCurrentAreaLI() {
-        super(() -> ScriptData.NOT_HANDLE_LOAD_OUT.verify() && !ScriptData.currentArea.contains(Players.getLocal()));
+        super(() -> !ScriptData.currentArea.contains(Players.getLocal()));
     }
 
     @Override

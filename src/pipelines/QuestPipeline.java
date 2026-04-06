@@ -3,21 +3,15 @@ package pipelines;
 import data.global.ScriptData;
 import framework.LoopInterceptor;
 import framework.Pipeline;
-import loopinterceptors.CheckLoadOutLI;
-import loopinterceptors.ContinueDialogueLI;
-import loopinterceptors.DialogueOptionsLI;
-import loopinterceptors.TaskTimerFinishedLI;
-import org.dreambot.api.utilities.Logger;
+import loopinterceptors.*;
 
-import java.util.Arrays;
+public class QuestPipeline extends Pipeline {
 
-public class BasicTaskPipeline extends Pipeline {
-
-    public BasicTaskPipeline(TaskTimerFinishedLI taskTimerFinishedLI, CheckLoadOutLI checkLoadOutLI, ContinueDialogueLI continueDialogueLI, DialogueOptionsLI dialogueOptionsLI, LoopInterceptor... loopInterceptors) {
+    public QuestPipeline(InCutsceneLI inCutsceneLI, CheckLoadOutLI checkLoadOutLI, ContinueDialogueLI continueDialogueLI, DialogueOptionsLI dialogueOptionsLI, LoopInterceptor... loopInterceptors) {
         super(null);
         LoopInterceptor[] loopInterceptorArr = new LoopInterceptor[loopInterceptors.length + 4];
         byte size = 0;
-        loopInterceptorArr[size++] = taskTimerFinishedLI;
+        loopInterceptorArr[size++] = inCutsceneLI;
         loopInterceptorArr[size++] = checkLoadOutLI;
         loopInterceptorArr[size++] = continueDialogueLI;
         loopInterceptorArr[size++] = dialogueOptionsLI;
@@ -27,10 +21,23 @@ public class BasicTaskPipeline extends Pipeline {
         setLoopInterceptors(loopInterceptorArr);
     }
 
+    public QuestPipeline(InCutsceneLI inCutsceneLI, CheckLoadOutLI checkLoadOutLI, CustomDialogueLI customDialogueLI, LoopInterceptor... loopInterceptors) {
+        super(null);
+        LoopInterceptor[] loopInterceptorArr = new LoopInterceptor[loopInterceptors.length + 3];
+        byte size = 0;
+        loopInterceptorArr[size++] = inCutsceneLI;
+        loopInterceptorArr[size++] = checkLoadOutLI;
+        loopInterceptorArr[size++] = customDialogueLI;
+        for (LoopInterceptor loopInterceptor : loopInterceptors) {
+            loopInterceptorArr[size++] = loopInterceptor;
+        }
+        setLoopInterceptors(loopInterceptorArr);
+    }
+
     @Override
     public void shuffleLoopInterceptors() {
-        int continueDialogueI = 2;
-        int dialogueOptionsLI = 3;
+        int continueDialogueI = 1;
+        int dialogueOptionsLI = 2;
         for (int i = loopInterceptors.length - 1; i > 2; i--) {
             int j = ScriptData.SECURE_RANDOM.nextInt(i) + 1;
             if (i == continueDialogueI) {
@@ -59,8 +66,6 @@ public class BasicTaskPipeline extends Pipeline {
         tmp = loopInterceptors[dialogueOptionsLI];
         loopInterceptors[dialogueOptionsLI] = loopInterceptors[j];
         loopInterceptors[j] = tmp;
-
-        Logger.log("Shuffled loopInterceptors: " + Arrays.toString(loopInterceptors));
     }
 
 }

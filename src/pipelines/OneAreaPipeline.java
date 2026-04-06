@@ -3,24 +3,22 @@ package pipelines;
 import data.global.ScriptData;
 import framework.LoopInterceptor;
 import framework.Pipeline;
-import loopinterceptors.CheckLoadOutLI;
-import loopinterceptors.ContinueDialogueLI;
-import loopinterceptors.DialogueOptionsLI;
-import loopinterceptors.TaskTimerFinishedLI;
+import loopinterceptors.*;
 import org.dreambot.api.utilities.Logger;
 
 import java.util.Arrays;
 
-public class BasicTaskPipeline extends Pipeline {
+public class OneAreaPipeline extends Pipeline {
 
-    public BasicTaskPipeline(TaskTimerFinishedLI taskTimerFinishedLI, CheckLoadOutLI checkLoadOutLI, ContinueDialogueLI continueDialogueLI, DialogueOptionsLI dialogueOptionsLI, LoopInterceptor... loopInterceptors) {
+    public OneAreaPipeline(TaskTimerFinishedLI taskTimerFinishedLI, CheckLoadOutLI checkLoadOutLI, WalkToCurrentAreaLI walkToCurrentAreaLI, ContinueDialogueLI continueDialogueLI, DialogueOptionsLI dialogueOptionsLI, LoopInterceptor... loopInterceptors) {
         super(null);
-        LoopInterceptor[] loopInterceptorArr = new LoopInterceptor[loopInterceptors.length + 4];
+        LoopInterceptor[] loopInterceptorArr = new LoopInterceptor[loopInterceptors.length + 5];
         byte size = 0;
         loopInterceptorArr[size++] = taskTimerFinishedLI;
         loopInterceptorArr[size++] = checkLoadOutLI;
         loopInterceptorArr[size++] = continueDialogueLI;
         loopInterceptorArr[size++] = dialogueOptionsLI;
+        loopInterceptorArr[size++] = walkToCurrentAreaLI;
         for (LoopInterceptor loopInterceptor : loopInterceptors) {
             loopInterceptorArr[size++] = loopInterceptor;
         }
@@ -29,8 +27,8 @@ public class BasicTaskPipeline extends Pipeline {
 
     @Override
     public void shuffleLoopInterceptors() {
-        int continueDialogueI = 2;
-        int dialogueOptionsLI = 3;
+        int continueDialogueI = 3;
+        int dialogueOptionsLI = 4;
         for (int i = loopInterceptors.length - 1; i > 2; i--) {
             int j = ScriptData.SECURE_RANDOM.nextInt(i) + 1;
             if (i == continueDialogueI) {

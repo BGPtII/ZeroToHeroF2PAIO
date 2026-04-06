@@ -1,7 +1,6 @@
 package data.global;
 
 import data.LoadOut;
-import framework.LoopInterceptor;
 import framework.Pipeline;
 import loopinterceptors.*;
 import org.dreambot.api.Client;
@@ -113,7 +112,6 @@ public class ScriptData {
     public static String currentEntityAction;
     public static int currentEntityDistance;
 
-    public static final Condition NOT_HANDLE_LOAD_OUT = () -> ScriptData.checkLoadOutLI != null && !ScriptData.checkLoadOutLI.shouldHandle();
     public static final Condition GRAND_EXCHANGE_IS_OPEN = GrandExchange::isOpen;
     public static final Condition GRAND_EXCHANGE_CLOSED = () -> !GrandExchange.isOpen();
     public static final Condition GRAND_EXCHANGE_READY_TO_COLLECT = GrandExchange::isReadyToCollect;
@@ -121,10 +119,11 @@ public class ScriptData {
     public static final Condition GROUND_ITEM_NOT_EXISTS_NULL = () -> currentGroundItem == null || !currentGroundItem.exists();
     public static final Condition INTERACTED_WITH_TARGET = () -> currentNPC == null || !currentNPC.exists() || currentNPC.getCharacterInteractingWithMe() != null;
     public static final Condition DONE_RESOURCE_GATHERING = () -> currentGameObject == null || !currentGameObject.exists() || Dialogues.inDialogue() || Inventory.isFull();
-    public static final Condition CURRENT_FREE_QUEST_NOT_FINISHED = () -> !currentFreeQuest.isFinished() && NOT_HANDLE_LOAD_OUT.verify() && !Dialogues.canContinue() && !Dialogues.areOptionsAvailable() && !Client.isInCutscene();
+    public static final Condition CURRENT_FREE_QUEST_NOT_FINISHED = () -> !currentFreeQuest.isFinished() && !Dialogues.canContinue() && !Dialogues.areOptionsAvailable() && !Client.isInCutscene();
     public static final Condition SHOULD_WALK = () -> Walking.shouldWalk(SECURE_RANDOM.nextInt(7 - 4 + 1) + 4);
-    public static final Condition IN_CURRENT_AREA = () -> currentArea != null && currentArea.contains(Players.getLocal());
+    public static final Condition IN_CURRENT_AREA = () -> currentArea.contains(Players.getLocal());
     public static final Condition INVENTORY_FULL = Inventory::isFull;
+    public static final Condition STOPPED_PROCESSING = () -> ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].shouldBank().verify() || Dialogues.canContinue() || Dialogues.areOptionsAvailable();
 
     public static BankWithdrawModeLI bankWithdrawModeLI = new BankWithdrawModeLI();
     public static DepositAllEqpLI depositAllEqpLI = new DepositAllEqpLI();
@@ -135,8 +134,6 @@ public class ScriptData {
     public static MiningLI miningLI = new MiningLI();
     public static DialogueOptionsLI dialogueOptionsLI = new DialogueOptionsLI();
     public static ContinueDialogueLI continueDialogueLI = new ContinueDialogueLI();
-    public static ItemProcessingLI itemProcessingLI = new ItemProcessingLI(0, null, 0);
-    public static InteractWithGameObjectSingularLI interactWithGameObjectSingularLI = new InteractWithGameObjectSingularLI();
     public static CheckLoadOutLI checkLoadOutLI = new CheckLoadOutLI();
     public static WalkToCurrentAreaLI walkToCurrentAreaLI = new WalkToCurrentAreaLI();
     public static FindValidNPCTargetLI findValidNPCTargetLI = new FindValidNPCTargetLI();
@@ -149,15 +146,14 @@ public class ScriptData {
     public static CantReachCurrentNPCLI cantReachCurrentNPCLI = new CantReachCurrentNPCLI();
     public static EatChosenFoodLI eatChosenFoodLI = new EatChosenFoodLI();
     public static CurrentTileToTargetNPCTileLI currentTileToTargetNPCTileLI = new CurrentTileToTargetNPCTileLI();
-    public static SecondaryTaskFinishedLI secondaryTaskFinishedLI = new SecondaryTaskFinishedLI();
-    public static ProgressionTaskFinishedLI progressionTaskFinishedLI = new ProgressionTaskFinishedLI();
+    public static SecondaryTaskTimerFinishedLI secondaryTaskTimerFinishedLI = new SecondaryTaskTimerFinishedLI();
+    public static ProgressionTaskTimerFinishedLI progressionTaskTimerFinishedLI = new ProgressionTaskTimerFinishedLI();
     public static BuyItemsLI buyItemsLI = new BuyItemsLI();
     public static SellItemsLI sellItemsLI = new SellItemsLI();
     public static ChangePlayerSetUpLI changePlayerSetUpLI = new ChangePlayerSetUpLI();
     public static OpenInventoryLI openInventoryLI = new OpenInventoryLI();
 
-    public static BankingPipeline bankingPipeline = new BankingPipeline(new LoopInterceptor[] { new WalkToOpenBankLI(), continueDialogueLI, dialogueOptionsLI, bankWithdrawModeLI, depositAllEqpLI, depositAllInvLI, depositLI, withdrawLI });
-
+    public static BankingPipeline bankingPipeline = new BankingPipeline(continueDialogueLI, dialogueOptionsLI, new WalkToOpenBankLI(), bankWithdrawModeLI, withdrawLI, depositLI, depositAllInvLI, depositAllEqpLI);
 
     public static Area GRAND_EXCHANGE = new Area(3145, 3508, 3186, 3472);
 

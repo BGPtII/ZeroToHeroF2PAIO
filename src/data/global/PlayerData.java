@@ -119,23 +119,23 @@ public class PlayerData {
             axe = 1349; // Iron
             canEquipAxe = true;
         }
-        Logger.log("initialized axe, canEquipAxe: " + canEquipAxe);
+        Logger.log("initialized axe: ," + axe + ", canEquipAxe: " + canEquipAxe);
     }
     public static void initializeBestAxeAvail(int woodcuttingLevel, int attackLevel) {
         if (woodcuttingLevel >= 41 && playerHasItemID(1359)) {
             bestAxeAvail = 1359;
             canEquipBestAxeAvail = attackLevel >= 40;
         }
-        else if (woodcuttingLevel >= 31 &&playerHasItemID(1357)) {
+        else if (woodcuttingLevel >= 31 && playerHasItemID(1357)) {
             bestAxeAvail = 1357;
             canEquipBestAxeAvail = attackLevel >= 30;
         }
-        else if (woodcuttingLevel >= 21 &&playerHasItemID(1355)) {
+        else if (woodcuttingLevel >= 21 && playerHasItemID(1355)) {
             bestAxeAvail = 1355;
             canEquipBestAxeAvail = attackLevel >= 20;
         }
-        else if (woodcuttingLevel >= 11 &&playerHasItemID(1631)) {
-            bestAxeAvail = 1631;
+        else if (woodcuttingLevel >= 11 && playerHasItemID(1361)) {
+            bestAxeAvail = 1361;
             canEquipBestAxeAvail = attackLevel >= 10;
         }
         else if (playerHasItemID(1349)) {
@@ -146,6 +146,7 @@ public class PlayerData {
             bestAxeAvail = 1351;
             canEquipBestAxeAvail = true;
         }
+        Logger.log("initialized bestAxeAvail: ," + bestAxeAvail + ", canEquipBestAxeAvail: " + canEquipBestAxeAvail);
     }
 
     public static void initializeMeleeArmour(int defenceLevel) {

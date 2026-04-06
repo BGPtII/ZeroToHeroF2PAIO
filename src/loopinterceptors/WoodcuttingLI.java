@@ -3,6 +3,7 @@ package loopinterceptors;
 import data.global.ScriptData;
 import framework.LoopInterceptor;
 import org.dreambot.api.methods.interactive.GameObjects;
+import org.dreambot.api.utilities.Logger;
 import org.dreambot.api.utilities.Sleep;
 import org.dreambot.api.wrappers.interactive.GameObject;
 
@@ -11,7 +12,7 @@ import java.util.List;
 public class WoodcuttingLI extends LoopInterceptor {
 
     public WoodcuttingLI() {
-        super(() -> ScriptData.NOT_HANDLE_LOAD_OUT.verify() && ScriptData.IN_CURRENT_AREA.verify());
+        super(ScriptData.IN_CURRENT_AREA);
     }
 
     @Override

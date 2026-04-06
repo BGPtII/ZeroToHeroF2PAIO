@@ -15,6 +15,8 @@ import org.dreambot.api.utilities.Sleep;
 import org.dreambot.api.utilities.impl.Condition;
 import org.dreambot.api.wrappers.items.Item;
 
+import java.util.Arrays;
+
 /**
  *
  */
@@ -33,7 +35,7 @@ public class BuyItemsLI extends LoopInterceptor {
     private byte buyStage;
     private byte currentBuyI;
 
-    private final Condition GE_CONTAINS_CURRENT_BUY_I = () -> !GrandExchange.contains(buyID[currentBuyI]);
+    private final Condition GE_CONTAINS_CURRENT_BUY_I = () -> GrandExchange.contains(buyID[currentBuyI]);
     private final Condition COLLECTED_ITEM = () -> !GrandExchange.isBuyOpen() || ScriptData.currentWidgetChild == null || ScriptData.currentWidgetChild.getActions() == null;
 
     public BuyItemsLI() {
@@ -161,7 +163,7 @@ public class BuyItemsLI extends LoopInterceptor {
 
     @Override
     public int handle() {
-        if (buyStage > 0 && !GrandExchange.isOpen()) { // Guard in case log out, must open GrandExchange again
+        if (buyStage > 0 && buySize > 0 && !GrandExchange.isOpen()) { // Guard in case log out, must open GrandExchange again
             if (ScriptData.GRAND_EXCHANGE.contains(Players.getLocal())) {
                 GrandExchange.open();
                 Sleep.sleepUntil(ScriptData.GRAND_EXCHANGE_IS_OPEN, ScriptData.SECURE_RANDOM.nextInt(15000 - 5000 + 1) + 5000, 300);
@@ -174,6 +176,11 @@ public class BuyItemsLI extends LoopInterceptor {
             switch (buyStage) {
                 case 0:
                     if (Inventory.onlyContains(995) && !Bank.contains(995)) {
+                        Logger.log("Buy information:");
+                        Logger.log("buyID: " + Arrays.toString(buyID));
+                        Logger.log("BuyPrice: " + Arrays.toString(buyPrice));
+                        Logger.log("BuyQty: " + Arrays.toString(buyQty));
+                        Logger.log("BuySize: " + buySize);
                         buyStage = 1;
                         shuffleBuy();
                         return ScriptData.returnMSFast();
@@ -203,10 +210,11 @@ public class BuyItemsLI extends LoopInterceptor {
                         }
                         if (Bank.contains(995)) {
                             ScriptData.withdrawLI.addItemToWithdraw(995, Bank.count(995) + Inventory.count(995));
+                            Logger.log("Added Coins to items to withdraw, withdrawSize: " + ScriptData.withdrawLI.getWithdrawSize());
                         }
-                        if (ScriptData.withdrawLI.shouldHandle() || ScriptData.depositLI.shouldHandle() || ScriptData.depositAllEqpLI.shouldHandle() || ScriptData.depositAllInvLI.shouldHandle()) {
+                        if (ScriptData.withdrawLI.getWithdrawSize() > 0 || ScriptData.depositLI.getDepositSize() > 0 || ScriptData.depositAllEqpLI.shouldHandle() || ScriptData.depositAllInvLI.shouldHandle()) {
                             // Set pipeline to bank pipeline, return pipeline to pipeline using currentPipelineI after
-                            ScriptData.bankingPipeline.setReturnToI((byte) 35);
+                            ScriptData.bankingPipeline.setBankingReturnToI((byte) 35);
                             ScriptData.currentPipelineI = 34;
                         }
                     }
@@ -219,6 +227,7 @@ public class BuyItemsLI extends LoopInterceptor {
                             return ScriptData.returnMSFast();
                         }
                         else { // Finished
+                            Logger.log("Finished toBuy");
                             transferMissedToBuy();
                             if (ScriptData.unPauseTimer == 1) {
                                 ScriptData.unPauseTimer = 0;
@@ -243,9 +252,11 @@ public class BuyItemsLI extends LoopInterceptor {
                         return ScriptData.returnMSFast();
                     }
                     else if (GrandExchange.buyItem(buyID[currentBuyI], buyQty[currentBuyI], buyPrice[currentBuyI])) {
+                        Logger.log("Placed buy offer for " + buyID[currentBuyI]);
                         Sleep.sleepUntil(GE_CONTAINS_CURRENT_BUY_I, ScriptData.SECURE_RANDOM.nextInt(20000 - 10000 + 1) + 10000, 300);
                         if (GE_CONTAINS_CURRENT_BUY_I.verify()) {
                             currentBuyI++;
+                            Logger.log("Incrementing currentBuyI, next item: " + buyID[currentBuyI]);
                             return ScriptData.returnMSFast();
                         }
                     }
@@ -255,6 +266,7 @@ public class BuyItemsLI extends LoopInterceptor {
                         buyStage = 1; // Place more offers
                         currentBuyI = 0;
                         shuffleBuy();
+                        Logger.log("usedSlots is 0, buyStage set to 1");
                         return ScriptData.returnMSFast();
                     }
                     else if (GrandExchange.slotContainsItem(currentBuyI)) {
@@ -270,13 +282,16 @@ public class BuyItemsLI extends LoopInterceptor {
                                     if (COLLECTED_ITEM.verify()) { // Verify interaction went through
                                         if (name.contains("Coins")) { // Didn't completely buy
                                             increaseBuyPrice(currentBuyI);
+                                            Logger.log("Didn't completely buy, collected Coins, and increased price");
                                         }
                                         else {
                                             reduceBuyQuantity(currentBuyI, stackSize);
-                                            if (buyQty[currentBuyI] == 0) { // Completely bought
+                                            if (buyQty[currentBuyI] <= 0) { // Completely bought
                                                 removeBuy(currentBuyI);
+                                                Logger.log("Completely bought, buySize now: " + getBuySize());
                                             }
                                             else {
+                                                Logger.log("Didn't completely buy");
                                                 increaseBuyPrice(currentBuyI);
                                             }
                                         }
@@ -287,6 +302,7 @@ public class BuyItemsLI extends LoopInterceptor {
                                 if (ScriptData.currentWidgetChild.interact()) { // Verify interaction
                                     Sleep.sleepUntil(COLLECTED_ITEM, ScriptData.SECURE_RANDOM.nextInt(15000 - 5000 + 1) + 5000, 300); // Verify interaction went through
                                 }
+                                Logger.log("Collected second slot");
                             }
                         }
                         else {

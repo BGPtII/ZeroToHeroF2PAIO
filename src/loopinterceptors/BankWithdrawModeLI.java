@@ -12,7 +12,7 @@ public class BankWithdrawModeLI extends LoopInterceptor {
     public BankWithdrawModeLI() {
         super(null);
         bankMode = BankMode.ITEM;
-        setShouldHandle(() -> Bank.getWithdrawMode() != bankMode);
+        setShouldHandle(() -> Bank.getWithdrawMode() != bankMode && Bank.isOpen());
     }
 
     public void setBankMode(BankMode bankMode) {

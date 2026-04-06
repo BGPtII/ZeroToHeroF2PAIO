@@ -1,25 +1,23 @@
 package framework;
 
 import data.global.ScriptData;
+import org.dreambot.api.utilities.Logger;
+
+import java.util.Arrays;
 
 public abstract class Pipeline {
 
-    protected final LoopInterceptor[] loopInterceptors;
-    protected byte currentLoopInterceptorI;
+    protected LoopInterceptor[] loopInterceptors;
 
     public Pipeline(LoopInterceptor[] loopInterceptors) {
         this.loopInterceptors = loopInterceptors;
-        currentLoopInterceptorI = 0; // Start at first
     }
 
     public int run() {
-        if (loopInterceptors[currentLoopInterceptorI].shouldHandle()) {
-            return loopInterceptors[currentLoopInterceptorI].handle();
-        }
-        currentLoopInterceptorI++;
-        if (currentLoopInterceptorI >= loopInterceptors.length) {
-            shuffleLoopInterceptors();
-            currentLoopInterceptorI = 0;
+        for (LoopInterceptor loopInterceptor : loopInterceptors) {
+            if (loopInterceptor.shouldHandle()) {
+                return loopInterceptor.handle();
+            }
         }
         return 0;
     }
@@ -31,6 +29,11 @@ public abstract class Pipeline {
             loopInterceptors[i] = loopInterceptors[j];
             loopInterceptors[j] = tmp;
         }
+        Logger.log("Shuffled loopInterceptors: " + Arrays.toString(loopInterceptors));
+    }
+
+    public void setLoopInterceptors(LoopInterceptor[] loopInterceptors) {
+        this.loopInterceptors = loopInterceptors;
     }
 
 }

@@ -17,7 +17,7 @@ import java.util.List;
 public class MiningLI extends LoopInterceptor {
 
     public MiningLI() {
-        super(() -> ScriptData.IN_CURRENT_AREA.verify() && ScriptData.NOT_HANDLE_LOAD_OUT.verify());
+        super(() -> ScriptData.currentArea.contains(Players.getLocal()));
     }
 
     private Tile getMiningTile() {

@@ -3,13 +3,13 @@ package loopinterceptors;
 import data.global.ScriptData;
 import framework.LoopInterceptor;
 import org.dreambot.api.methods.interactive.Players;
+import org.dreambot.api.utilities.Logger;
 import org.dreambot.api.utilities.Sleep;
 
 public class AttackTargetNPCLI extends LoopInterceptor {
 
     public AttackTargetNPCLI() {
-        super(() -> ScriptData.NOT_HANDLE_LOAD_OUT.verify()
-                && ScriptData.currentNPC != null
+        super(() -> ScriptData.currentNPC != null
                 && ScriptData.currentNPC.getHealthPercent() > 0
                 && ScriptData.currentNPC.canReach()
                 && !Players.getLocal().isInteracting(ScriptData.currentNPC));

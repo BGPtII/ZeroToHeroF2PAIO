@@ -19,8 +19,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 
 /**
- * If initial:
- * - Remove items not in loadOut (eqp + inv) from Inventory/Equipment
+ * 0: Plan out buy/sell/deposit/withdraw + shuffleOrder 1+
+ * - When reaches end, re-plan - if either buy/sell/deposit/withdraw not empty > stage = 0, shuffleOrder 1+
  */
 public class CheckLoadOutLI extends LoopInterceptor {
 
@@ -36,15 +36,15 @@ public class CheckLoadOutLI extends LoopInterceptor {
         556, 557, 554, 559 // Air rune, Earth rune, Fire rune, Body rune
     };
 
-    private int[] itemsToEqp = new int[11];
-    private byte itemsToEqpSize;
-    private byte currentItemToEqp;
-    private byte closeOutOfBankToEqp = -1;
+    public int[] itemsToEqp = new int[11];
+    public byte itemsToEqpSize;
+    public byte currentItemToEqp;
+    public byte closeOutOfBankToEqp = -1;
 
-    private byte currentStageI;
-    private final byte[] stage = new byte[] { 0, 1, 2, 3 };
+    public byte currentStageI;
+    public final byte[] stage = new byte[] { 0, 1, 2, 3 }; // 0 - plan, 1 - determine buyItems/sellItems/determineSecondaryTask, 2 - eqpItems, 3 - routeToBanking
 
-    private boolean locked;
+    public boolean locked;
 
     public CheckLoadOutLI() {
         super(null);
@@ -52,29 +52,39 @@ public class CheckLoadOutLI extends LoopInterceptor {
     }
 
     public void reset() {
-        locked = false;
+        currentStageI = 0;
+        shuffleStage();
     }
 
     @Override
     public int handle() {
         if (currentStageI >= stage.length) {
-            locked = false;
+            shuffleStage();
             currentStageI = 0;
-            ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].setSetUp(false);
-            Logger.log("locked now false");
-            if (ScriptData.taskType == 0 && ScriptData.progressionTaskTimer == null) {
-                ScriptData.progressionTaskTimer = getTaskTimer();
-                Logger.log("Initialized progressionTaskTimer");
+            if (ScriptData.buyItemsLI.getBuySize() == 0 && ScriptData.sellItemsLI.getSellSize() == 0
+                    && ScriptData.depositLI.getDepositSize() == 0 && ScriptData.withdrawLI.getWithdrawSize() == 0
+                    && !ScriptData.depositAllEqpLI.shouldHandle() && !ScriptData.depositAllInvLI.shouldHandle()
+                    && itemsToEqpSize == 0) {
+                locked = false;
+                ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].setSetUp(false);
+                if (ScriptData.taskType == 0 && ScriptData.progressionTaskTimer == null) {
+                    ScriptData.progressionTaskTimer = getTaskTimer();
+                    Logger.log("Initialized progressionTaskTimer");
+                }
+                else if (ScriptData.secondaryTaskTimer == null) {
+                    ScriptData.secondaryTaskTimer = getTaskTimer();
+                    Logger.log("Initialized secondaryTaskTimer");
+                }
+                Logger.log("Finished CheckLoadOutLI");
             }
-            else if (ScriptData.secondaryTaskTimer == null) {
-                ScriptData.secondaryTaskTimer = getTaskTimer();
-                Logger.log("Initialized secondaryTaskTimer");
-            }
-            Logger.log("Finished CheckLoadOutLI");
+            ScriptData.buyItemsLI.reset();
+            ScriptData.sellItemsLI.reset();
+            ScriptData.withdrawLI.reset();
+            ScriptData.depositLI.reset();
             return ScriptData.returnMSFast();
         }
         else if (!locked) {
-            shuffleCheckThis();
+            shuffleStage();
             locked = true;
             currentStageI = 0;
             Logger.log("locked now true, checkThis order:" + Arrays.toString(stage));
@@ -84,128 +94,41 @@ public class CheckLoadOutLI extends LoopInterceptor {
             switch (stage[currentStageI]) {
                 case 0: // plan
                     Logger.log("Starting planning");
-                    Logger.log("eqpSize: " + ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getEqpSize());
-                    for (byte i = 0; i < ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getEqpSize(); i++) {
-                        int id = ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getEqpItemID(i);
-                        int eqpCount = Equipment.count(id);
-                        int invCount = Inventory.count(id);
-                        int bankCount = Bank.count(id);
-                        int minCount = ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getEqpItemQtyMin(i);
-                        int maxCount = ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getEqpItemQtyMax(i);
-                        int initCount = ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getEqpItemQtyInit(i);
-                        if (invCount > 0) { // Equip/Wear eqpItems that are in inventory
-                            addItemToEqp(id);
-                        }
-                        if (bankCount > 0 && eqpCount + invCount < maxCount) {
-                            ScriptData.withdrawLI.addItemToWithdraw(id, Math.min(bankCount, maxCount)); // Withdraw eqpItems from bank
-                            Logger.log("Added " + id + " to withdraw");
-                        }
-                        else if (initCount > 0) {
-                            ScriptData.buyItemsLI.addBuyItem(id, initCount - invCount - eqpCount - bankCount); // Buy more eqpItems
-                            Logger.log("Added " + id + " to buyItems");
-                        }
+                    manageEqpLoadOut();
+                    depositExtraInv();
+                    depositExtraEqp();
+                    manageInvLoadOut();
+                    Logger.log("Done planning; buySize: " + ScriptData.buyItemsLI.getBuySize() + ", withdrawSize: " + ScriptData.withdrawLI.getWithdrawSize() + ", itemsToEqpSize: " + itemsToEqpSize + ", depositSize: " + ScriptData.depositLI.getDepositSize() + ", depositAllInv: " + ScriptData.depositAllInvLI.shouldHandle());
+                    if (ScriptData.buyItemsLI.getBuySize() == 0 && ScriptData.sellItemsLI.getSellSize() == 0
+                            && ScriptData.depositLI.getDepositSize() == 0 && ScriptData.withdrawLI.getWithdrawSize() == 0
+                            && !ScriptData.depositAllEqpLI.shouldHandle() && !ScriptData.depositAllInvLI.shouldHandle()
+                            && itemsToEqpSize == 0) {
+                        currentStageI = 4;
+                        Logger.log("Doesn't need to checkLoadOut anymore");
                     }
-                    HashSet<Integer> alreadyAdded = new HashSet<>();
-                    for (Item item : Inventory.toArray()) {
-                        if (item != null) {
-                            boolean contains = false;
-                            int itemID = item.getId();
-                            Logger.log("invItemID to check: " + itemID);
-                            for (byte i = 0; i < ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getInvSize(); i++) {
-                                int loadOutID = ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getInvItemID(i);
-                                Logger.log("loadOutID to check: " + loadOutID);
-                                if (itemID == loadOutID) {
-                                    contains = true;
-                                    break;
-                                }
-                            }
-                            if (!contains && !alreadyAdded.contains(itemID)) {
-                                Logger.log("Added id " + itemID + " to deposit");
-                                ScriptData.depositLI.addItemToDeposit(itemID, Inventory.count(itemID));
-                                alreadyAdded.add(itemID);
-                            }
-                        }
+                    else {
+                        currentStageI++;
                     }
-                    Logger.log("Added inventory items to deposit, size: " + ScriptData.depositLI.getDepositSize());
-                    for (Object obj : Equipment.toArray()) {
-                        Item item = (Item) obj;
-                        if (item != null) {
-                            int itemID = item.getId();
-                            boolean contains = false;
-                            for (byte i = 0; i < ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getEqpSize(); i++) {
-                                int loadOutID = ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getEqpItemID(i);
-                                if (itemID == loadOutID) {
-                                    contains = true;
-                                    break;
-                                }
-                            }
-                            if (!contains) {
-                                Logger.log("Needs to deposit all equipment items");
-                                ScriptData.depositAllEqpLI.setDepositAllEqp(true);
-                                break;
-                            }
-                        }
-                    }
-                    Logger.log("Added equipment items to deposit, size: " + ScriptData.depositLI.getDepositSize());
-                    Logger.log("invSize: " + ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getInvSize());
-                    Logger.log("Iterating over inv loadout to see withdraw");
-                    for (byte i = 0; i < ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getInvSize(); i++) {
-                        int id = ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getInvItemID(i);
-                        int invCount = Inventory.count(id);
-                        int bankCount = Bank.count(id);
-                        int minCount = ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getInvItemQtyMin(i);
-                        int maxCount = ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getInvItemQtyMax(i);
-                        int initCount = ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getInvItemQtyInit(i);
-                        Logger.log("i: " + i + ", id: " + id + ", invCount: " + invCount + ", bankCount: " + bankCount + ", maxCount: " + maxCount);
-                        if (bankCount > 0 && (bankCount + invCount >= minCount || invCount < maxCount)) {
-                            ScriptData.withdrawLI.addItemToWithdraw(id, Math.min(bankCount, maxCount)); // Withdraw invItems from bank
-                            Logger.log("Adding id " + id + " to withdraw");
-                        }
-                        else if (invCount > maxCount) {
-                            ScriptData.depositLI.addItemToDeposit(id, invCount - maxCount); // Deposit extra invItems
-                        }
-                        else if (bankCount + invCount < minCount) {
-                            ScriptData.buyItemsLI.addBuyItem(id, initCount - invCount - bankCount); // Buy more invItems
-                            Logger.log("Added id " + id + " to buyItems");
-                        }
-                    }
-                    Logger.log("Done planning; buySize: " + ScriptData.buyItemsLI.getBuySize() + ", withdrawSize: " + ScriptData.withdrawLI.getWithdrawSize());
-                    currentStageI++;
                     return ScriptData.returnMSFast();
-                case 1: // withdraw/depositItems
-                    boolean triggerBanking = false;
-                    if (ScriptData.withdrawLI.getWithdrawSize() != 0) {
-                        triggerBanking = true;
-                        ScriptData.withdrawLI.shuffleWithdraw();
-                    }
-                    if (ScriptData.depositLI.getDepositSize() != 0) {
-                        triggerBanking = true;
-
-                        ScriptData.depositLI.shuffleDeposit();
-
-                    }
-                    if (triggerBanking) {
-                        ScriptData.bankingPipeline.setReturnToI(ScriptData.currentPipelineI);
-                        ScriptData.currentPipelineI = 34;
-                        Logger.log("Go to bankingPipeline (34)");
-                    }
-                    currentStageI++;
-                    return ScriptData.returnMSFast();
-                case 2: // determine if routing to buy/sell/determineSecondary
+                case 1: // determine if routing to buy/sell/determineSecondary
                     if (ScriptData.buyItemsLI.getBuySize() != 0) {
                         int coinsHeld = Bank.count(995) + Inventory.count(995);
                         int totalPrice = ScriptData.buyItemsLI.getBuyTotalPrice();
                         if (coinsHeld >= totalPrice) {
                             ScriptData.withdrawLI.reset();
-                            ScriptData.bankingPipeline.setReturnToI(ScriptData.currentPipelineI);
+                            ScriptData.depositLI.reset();
+                            ScriptData.sellItemsLI.reset();
+                            ScriptData.bankingPipeline.setBankingReturnToI(ScriptData.currentPipelineI);
                             ScriptData.currentPipelineI = 35;
-                            Logger.log("Routing to buyItems");
+                            Logger.log("Routing to buyItems, buySize: " + ScriptData.buyItemsLI.getBuySize() + ", withdrawSize: " + ScriptData.withdrawLI.getWithdrawSize());
                         }
                         else {
                             attemptAddSellableItems();
                             if (ScriptData.sellItemsLI.getSellSize() != 0) {
-                                ScriptData.bankingPipeline.setReturnToI(ScriptData.currentPipelineI);
                                 ScriptData.currentPipelineI = 36;
+                                ScriptData.withdrawLI.reset();
+                                ScriptData.depositLI.reset();
+                                ScriptData.buyItemsLI.reset();
                                 Logger.log("Routing to sellItems");
                             }
                             else { // Roll a secondary task
@@ -218,11 +141,32 @@ public class CheckLoadOutLI extends LoopInterceptor {
                                 Logger.log("Routing to determineTask to roll a secondary task");
                             }
                         }
+                        currentStageI = 0;
                     }
-                    Logger.log("Done determining routing to buy/sell/determineSecondary");
+                    else {
+                        Logger.log("Done determining routing to buy/sell/determineSecondary");
+                        currentStageI++;
+                    }
+                    return ScriptData.returnMSFast();
+                case 2: // withdraw/depositItems
+                    Logger.log("Withdraw/depositItems");
+                    if (ScriptData.withdrawLI.getWithdrawSize() != 0) {
+                        ScriptData.withdrawLI.shuffleWithdraw();
+                    }
+                    if (ScriptData.depositLI.getDepositSize() != 0) {
+                        ScriptData.depositLI.shuffleDeposit();
+                    }
+                    if (ScriptData.withdrawLI.getWithdrawSize() != 0 || ScriptData.depositLI.getDepositSize() != 0
+                            || ScriptData.depositAllInvLI.shouldHandle() || ScriptData.depositAllEqpLI.shouldHandle()) {
+                        ScriptData.bankingPipeline.shuffleLoopInterceptors();
+                        ScriptData.bankingPipeline.setBankingReturnToI(ScriptData.currentPipelineI);
+                        ScriptData.currentPipelineI = 34;
+                        Logger.log("Go to bankingPipeline (34)");
+                    }
                     currentStageI++;
                     return ScriptData.returnMSFast();
                 case 3: // eqpItems
+                    Logger.log("eqpItems, itemsToEqpSize: " + itemsToEqpSize);
                     if (currentItemToEqp >= itemsToEqpSize) {
                         currentStageI++;
                         closeOutOfBankToEqp = -1;
@@ -238,12 +182,13 @@ public class CheckLoadOutLI extends LoopInterceptor {
                         Bank.close();
                         return ScriptData.returnMSNormal();
                     }
-                    else if (Equipment.contains(itemsToEqp[currentItemToEqp]) && !Inventory.contains(itemsToEqp[currentItemToEqp])) {
+                    else if (!Inventory.contains(itemsToEqp[currentItemToEqp])) {
                         currentItemToEqp++;
                     }
                     else {
                         Item item = Inventory.get(itemsToEqp[currentItemToEqp]);
                         if (item != null) {
+                            Logger.log("item: " + item.getName());
                             if (item.hasAction("Wield")) {
                                 if (item.interact("Wield")) {
                                     Sleep.sleepUntil(() -> Inventory.getIdForSlot(item.getSlot()) == -1, ScriptData.SECURE_RANDOM.nextInt(10000 - 3000 + 1) + 3000, 300);
@@ -307,7 +252,8 @@ public class CheckLoadOutLI extends LoopInterceptor {
         p.itemsToEqpSize = itemsToEqpSize;
         p.currentItemToEqp = currentItemToEqp;
         p.closeOutOfBankToEqp = closeOutOfBankToEqp;
-        p.checkLoadOutStage = currentStageI;
+        p.currentStageI = currentStageI;
+        p.stage = stage;
         p.locked = locked;
     }
 
@@ -316,7 +262,7 @@ public class CheckLoadOutLI extends LoopInterceptor {
         itemsToEqpSize = p.itemsToEqpSize;
         currentItemToEqp = p.currentItemToEqp;
         closeOutOfBankToEqp = p.closeOutOfBankToEqp;
-        currentStageI = p.checkLoadOutStage;
+        currentStageI = p.currentStageI;
         locked = p.locked;
     }
 
@@ -329,13 +275,13 @@ public class CheckLoadOutLI extends LoopInterceptor {
         }
     }
 
-    private void shuffleCheckThis() {
-        for (int i = stage.length - 1; i > 1; i--) {
-            int j = 1 + ScriptData.SECURE_RANDOM.nextInt(i);
-            byte tmp = stage[i];
-            stage[i] = stage[j];
-            stage[j] = tmp;
+    private void shuffleStage() {
+        if (ScriptData.rollChance(50)) {
+            byte tmp = stage[2];
+            stage[2] = stage[3];
+            stage[3] = tmp;
         }
+        Logger.log("Shuffled, " + Arrays.toString(stage));
     }
 
     private void addItemToEqp(int id) {
@@ -390,6 +336,7 @@ public class CheckLoadOutLI extends LoopInterceptor {
                 int sellQty = Math.min(qtyHeld, qtyNeeded);
                 if (sellQty > 0) {
                     ScriptData.sellItemsLI.addSell(id, pricePer, sellQty);
+                    Logger.log("Added toSell, id: " + id + ", sellQty: " + sellQty + ", pricePer: " + pricePer);
                     totalBuyPriceRemaining -= sellQty * pricePer;
                 }
                 if (totalBuyPriceRemaining <= 0) {
@@ -406,11 +353,113 @@ public class CheckLoadOutLI extends LoopInterceptor {
                 int sellQty = Math.min(qtyHeld, qtyNeeded);
                 if (sellQty > 0) {
                     ScriptData.sellItemsLI.addSell(id, pricePer, sellQty);
+                    Logger.log("Added toSell, id: " + id + ", sellQty: " + sellQty + ", pricePer: " + pricePer);
                     totalBuyPriceRemaining -= sellQty * pricePer;
                 }
                 if (totalBuyPriceRemaining <= 0) {
                     return;
                 }
+            }
+        }
+    }
+
+    private void manageEqpLoadOut() {
+        for (byte i = 0; i < ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getEqpSize(); i++) {
+            int id = ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getEqpItemID(i);
+            int eqpCount = Equipment.count(id);
+            int invCount = Inventory.count(id);
+            int bankCount = Bank.count(id);
+            int minCount = ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getEqpItemQtyMin(i);
+            int maxCount = ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getEqpItemQtyMax(i);
+            int initCount = ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getEqpItemQtyInit(i);
+            if ((ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].shouldSetUp() && eqpCount + invCount + bankCount < initCount)
+                    || (!ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].shouldSetUp() && eqpCount + invCount + bankCount < minCount)) {
+                ScriptData.buyItemsLI.addBuyItem(id, initCount - invCount - eqpCount - bankCount); // Buy more eqpItems
+                Logger.log("Added " + id + " to buyItems");
+            }
+            else if (minCount > 0 && invCount > 0) { // Equip/Wear eqpItems that are in inventory
+                addItemToEqp(id);
+                Logger.log("Added " + id + " to itemsToEqp");
+            }
+            else if (bankCount > 0 && maxCount > 0 && eqpCount + invCount < maxCount) {
+                Logger.log("bankCount: " + bankCount + ", eqpCount: " + eqpCount + ", maxCount: " + maxCount);
+                ScriptData.withdrawLI.addItemToWithdraw(id, Math.min(bankCount, maxCount)); // Withdraw eqpItems from bank
+                Logger.log("Added " + id + " to withdraw, qty: " + Math.min(bankCount, maxCount));
+            }
+        }
+    }
+
+    private void depositExtraInv() {
+        HashSet<Integer> alreadyAdded = new HashSet<>(28);
+        HashSet<Integer> uniqueItems = new HashSet<>(28);
+        for (Item item : Inventory.toArray()) {
+            if (item != null) {
+                uniqueItems.add(item.getId());
+                boolean contains = false;
+                int itemID = item.getId();
+                for (byte i = 0; i < ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getInvSize(); i++) {
+                    int loadOutID = ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getInvItemID(i);
+                    if (itemID == loadOutID) {
+                        contains = true;
+                        break;
+                    }
+                }
+                if (!contains && !alreadyAdded.contains(itemID)) {
+                    ScriptData.depositLI.addItemToDeposit(itemID, Inventory.count(itemID));
+                    alreadyAdded.add(itemID);
+                }
+            }
+        }
+        Logger.log("alreadyAdded (size): " + alreadyAdded.size());
+        Logger.log("uniqueItems (size): " + uniqueItems.size());
+        if (!uniqueItems.isEmpty() && uniqueItems.size() == ScriptData.depositLI.getDepositSize()) {
+            Logger.log("Needs to depositAllInv instead of depositing individual items");
+            ScriptData.depositLI.reset();
+            ScriptData.depositAllInvLI.setDepositAllInv(true);
+        }
+    }
+
+    private void depositExtraEqp() {
+        for (Object obj : Equipment.toArray()) {
+            Item item = (Item) obj;
+            if (item != null) {
+                int itemID = item.getId();
+                boolean contains = false;
+                for (byte i = 0; i < ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getEqpSize(); i++) {
+                    int loadOutID = ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getEqpItemID(i);
+                    if (itemID == loadOutID) {
+                        contains = true;
+                        break;
+                    }
+                }
+                if (!contains) {
+                    Logger.log("Needs to deposit all equipment items");
+                    ScriptData.depositAllEqpLI.setDepositAllEqp(true);
+                    break;
+                }
+            }
+        }
+    }
+
+    private void manageInvLoadOut() {
+        for (byte i = 0; i < ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getInvSize(); i++) {
+            int id = ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getInvItemID(i);
+            int invCount = Inventory.count(id);
+            int bankCount = Bank.count(id);
+            int minCount = ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getInvItemQtyMin(i);
+            int maxCount = ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getInvItemQtyMax(i);
+            int initCount = ScriptData.TASK_LOAD_OUTS[ScriptData.currentPipelineI].getInvItemQtyInit(i);
+            Logger.log("i: " + i + ", id: " + id + ", invCount: " + invCount + ", bankCount: " + bankCount + ", maxCount: " + maxCount);
+            if (bankCount > 0 && bankCount + invCount >= minCount && invCount < maxCount) {
+                ScriptData.withdrawLI.addItemToWithdraw(id, Math.min(bankCount, maxCount)); // Withdraw invItems from bank
+                Logger.log("Adding id " + id + " to withdraw");
+            }
+            else if (invCount > maxCount) {
+                ScriptData.depositLI.addItemToDeposit(id, invCount - maxCount); // Deposit extra invItems
+            }
+            else if (bankCount + invCount < minCount) {
+                ScriptData.buyItemsLI.addBuyItem(id, initCount - invCount - bankCount); // Buy more invItems
+                Logger.log("Added id " + id + " to buyItems");
             }
         }
     }

@@ -17,20 +17,25 @@ public class ShearSheepLI extends LoopInterceptor {
     private final Condition SHEARED_SHEEP = () -> ScriptData.currentNPC == null || !ScriptData.currentNPC.exists() || !ScriptData.currentNPC.hasAction("Shear");
 
     public ShearSheepLI() {
-        super(() -> ScriptData.NOT_HANDLE_LOAD_OUT.verify() && !Inventory.isFull() && Inventory.contains(1735));
+        super(() -> !Inventory.isFull() && Inventory.contains(1735));
     }
 
     @Override
     public int handle() {
         if (ScriptData.currentArea.contains(Players.getLocal())) {
             int playersInPen = Players.all(player -> ScriptData.currentArea.contains(player) && !player.equals(Players.getLocal())).size();
-            if (playersInPen >= ScriptData.questOrder[0]
-                    || ScriptData.questOrderI >= ScriptData.questOrder[1]) {
-                Logger.log("playersInPen: " + playersInPen + ", maxPlayersInPenAllowed: " + ScriptData.questOrder[1]);
-                Logger.log("Times failed to find valid sheep: " + ScriptData.questOrderI + ", maxAllowedFailures: " + ScriptData.questOrder[0]);
+            if (playersInPen >= ScriptData.questOrder[0]) {
+                Logger.log("playersInPen: " + playersInPen + ", maxPlayersInPenAllowed: " + ScriptData.questOrder[0]);
+                Logger.log("playersInPen >= maxPlayersInPenAllowed: " + (playersInPen >= ScriptData.questOrder[0]));
+                Logger.log("Times failed to find valid sheep: " + ScriptData.questOrderI + ", maxAllowedFailures: " + ScriptData.questOrder[1]);
+                Logger.log("Times failed to find valid sheep >= maxAllowedFailures: " + (ScriptData.questOrderI >= ScriptData.questOrder[1]));
                 if (ScriptData.hopWorldsWH()) {
-                    ScriptData.questOrder[0] = (byte) (ScriptData.SECURE_RANDOM.nextInt(7 - 3 + 1) + 3);
-                    ScriptData.questOrder[1] = (byte) (ScriptData.SECURE_RANDOM.nextInt(7 - 3 + 1) + 3);
+                    if (playersInPen >= ScriptData.questOrder[0]) {
+                        ScriptData.questOrder[0] = (byte) (ScriptData.SECURE_RANDOM.nextInt(7 - 3 + 1) + 3);
+                    }
+                    if (ScriptData.questOrderI >= ScriptData.questOrder[1]) {
+                        ScriptData.questOrder[1] = (byte) (ScriptData.SECURE_RANDOM.nextInt(7 - 3 + 1) + 3);
+                    }
                     ScriptData.questOrderI = 0;
                     return ScriptData.returnMSNormal();
                 }

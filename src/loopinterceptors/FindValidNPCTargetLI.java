@@ -12,15 +12,18 @@ import java.util.List;
 public class FindValidNPCTargetLI extends LoopInterceptor {
 
     public FindValidNPCTargetLI() {
-        super(() -> ScriptData.currentNPC == null
-                || !ScriptData.currentNPC.exists()
-                || ((ScriptData.currentCharacter = ScriptData.currentNPC.getCharacterInteractingWithMe()) != null
-                && ScriptData.currentNPC.hasAction("Attack")
-                && !ScriptData.currentCharacter.equals(Players.getLocal())));
+        super(() -> ScriptData.currentArea.contains(Players.getLocal())
+                && (ScriptData.currentNPC == null
+                    || !ScriptData.currentNPC.exists()
+                    || ((ScriptData.currentCharacter = ScriptData.currentNPC.getCharacterInteractingWithMe()) != null)
+                        && ScriptData.currentCharacter.exists()
+                        && ScriptData.currentCharacter.hasAction("Attack")
+                        && !ScriptData.currentCharacter.equals(Players.getLocal())));
     }
 
     @Override
     public int handle() {
+        Logger.log("Needs to find valid NPC target");
         if (ScriptData.currentCharacter != null) { // Something attacking player, target not set
             ScriptData.currentNPC = (NPC) ScriptData.currentCharacter;
             ScriptData.currentTile = ScriptData.currentNPC.getServerTile();

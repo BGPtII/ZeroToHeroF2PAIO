@@ -16,7 +16,7 @@ import org.dreambot.api.methods.skills.Skills;
 import org.dreambot.api.methods.walking.pathfinding.impl.local.LocalPathFinder;
 import org.dreambot.api.methods.walking.pathfinding.impl.obstacle.impl.PassableObstacle;
 import org.dreambot.api.utilities.Logger;
-import pipelines.BasicTaskPipeline;
+import pipelines.QuestPipeline;
 
 public class DetermineTaskLI extends LoopInterceptor {
 
@@ -28,10 +28,16 @@ public class DetermineTaskLI extends LoopInterceptor {
     public int handle() {
         Logger.log("Starting DetermineTaskLI, taskType: " + ScriptData.taskType);
         ScriptData.currentTile = null;
-        if (ScriptData.taskType == 2) { // return to progression from secondary
+        if (ScriptData.taskType == 3) { // Re-initialize progressionTask
+            Logger.log("Re-initialize progressionTask");
+            ScriptData.currentPipelineI = ScriptData.currentProgressionTaskI;
+        }
+        else if (ScriptData.taskType == 2) { // return to progression from secondary
+            Logger.log("Returning to progression from secondary");
             ScriptData.currentPipelineI = ScriptData.currentProgressionTaskI;
         }
         else if (ScriptData.taskType == 1) { // roll secondary
+            Logger.log("Needs to roll secondary task");
             if (ScriptData.currentProgressionTaskI == 1) { // fireMaking == roll a money making or log acquisition task
                 if (Skills.getRealLevel(Skill.FIREMAKING) >= 30 && Skills.getRealLevel(Skill.WOODCUTTING) >= 30) {
                     ScriptData.currentEntityName = "Willow tree";
@@ -126,7 +132,8 @@ public class DetermineTaskLI extends LoopInterceptor {
             Logger.log("Rolled a secondaryTask: " + ScriptData.currentSecondaryTaskI);
             ScriptData.currentPipelineI = ScriptData.currentSecondaryTaskI;
         }
-        else if (ScriptData.taskType != 3) { // 3 == re-initialize primary
+        else if (ScriptData.taskType == 0) {
+            Logger.log("Rolling primary task");
             int taskRoll;
             if (ScriptData.currentProgressionTaskI != -1) {
                 taskRoll = ScriptData.SECURE_RANDOM.nextInt(ScriptData.progressionTaskWeightTotal - ScriptData.TASK_WEIGHTS[ScriptData.currentProgressionTaskI]);
@@ -151,7 +158,7 @@ public class DetermineTaskLI extends LoopInterceptor {
                     if (taskRoll < incrementalTotalWeight) {
                         ScriptData.currentProgressionTaskI = i;
                         Logger.log("Selected currentProgressionTaskI: " + ScriptData.currentProgressionTaskI);
-                        ScriptData.currentPipelineI = i;
+                        ScriptData.currentPipelineI = ScriptData.currentProgressionTaskI;
                         break;
                     }
                 }
@@ -162,7 +169,7 @@ public class DetermineTaskLI extends LoopInterceptor {
         ScriptData.PIPELINES[ScriptData.currentPipelineI].shuffleLoopInterceptors();
         ScriptData.resetEntities();
         ScriptData.checkLoadOutLI.reset();
-        Logger.log("Finished determineTaskLI");
+        Logger.log("Finished determineTaskLI, taskType: " + ScriptData.taskType + ", progressionTaskI: " + ScriptData.currentPipelineI);
         return ScriptData.returnMSFast();
     }
 
@@ -190,9 +197,9 @@ public class DetermineTaskLI extends LoopInterceptor {
                 return !FreeQuest.PRINCE_ALI_RESCUE.isFinished() && Skills.getRealLevel(Skill.DEFENCE) >= 15;
             case 9:
                 return !FreeQuest.BELOW_ICE_MOUNTAIN.isFinished()
-                        && Skills.getRealLevel(Skill.MINING) >= 10
-                        && Skills.getRealLevel(Skill.DEFENCE) >= 20
-                        && Quests.getQuestPoints() >= 16;
+                    && Skills.getRealLevel(Skill.MINING) >= 10
+                    && Skills.getRealLevel(Skill.DEFENCE) >= 20
+                    && Quests.getQuestPoints() >= 16;
             case 22:
                 return !FreeQuest.SHEEP_SHEARER.isFinished();
             case 20:
@@ -201,62 +208,62 @@ public class DetermineTaskLI extends LoopInterceptor {
                 return !FreeQuest.IMP_CATCHER.isFinished() && Skills.getTotalLevel() >= 150;
             case 26:
                 return !FreeQuest.VAMPYRE_SLAYER.isFinished()
-                        && Skills.getRealLevel(Skill.ATTACK) >= 15
-                        && Skills.getRealLevel(Skill.STRENGTH) >= 15
-                        && Skills.getRealLevel(Skill.DEFENCE) >= 15;
+                    && Skills.getRealLevel(Skill.ATTACK) >= 15
+                    && Skills.getRealLevel(Skill.STRENGTH) >= 15
+                    && Skills.getRealLevel(Skill.DEFENCE) >= 15;
             case 10:
                 return !FreeQuest.BLACK_KNIGHTS_FORTRESS.isFinished()
-                        && Skills.getRealLevel(Skill.ATTACK) >= 20
-                        && Skills.getRealLevel(Skill.STRENGTH) >= 20
-                        && Skills.getRealLevel(Skill.DEFENCE) >= 20;
+                    && Skills.getRealLevel(Skill.ATTACK) >= 20
+                    && Skills.getRealLevel(Skill.STRENGTH) >= 20
+                    && Skills.getRealLevel(Skill.DEFENCE) >= 20;
             case 23:
                 return !FreeQuest.THE_CORSAIR_CURSE.isFinished()
-                        && Skills.getRealLevel(Skill.ATTACK) >= 20
-                        && Skills.getRealLevel(Skill.STRENGTH) >= 20
-                        && Skills.getRealLevel(Skill.DEFENCE) >= 20
-                        && Skills.getRealLevel(Skill.RANGED) >= 20;
+                    && Skills.getRealLevel(Skill.ATTACK) >= 20
+                    && Skills.getRealLevel(Skill.STRENGTH) >= 20
+                    && Skills.getRealLevel(Skill.DEFENCE) >= 20
+                    && Skills.getRealLevel(Skill.RANGED) >= 20;
             case 12:
                 return !FreeQuest.DEMON_SLAYER.isFinished()
-                        && Skills.getRealLevel(Skill.ATTACK) >= 20
-                        && Skills.getRealLevel(Skill.STRENGTH) >= 20
-                        && Skills.getRealLevel(Skill.DEFENCE) >= 20
-                        && Skills.getRealLevel(Skill.RANGED) >= 20;
+                    && Skills.getRealLevel(Skill.ATTACK) >= 20
+                    && Skills.getRealLevel(Skill.STRENGTH) >= 20
+                    && Skills.getRealLevel(Skill.DEFENCE) >= 20
+                    && Skills.getRealLevel(Skill.RANGED) >= 20;
             case 13:
                 return !FreeQuest.DORICS_QUEST.isFinished()
-                        && Skills.getTotalLevel() >= 75
-                        && Skills.getRealLevel(Skill.MINING) >= 10;
+                    && Skills.getTotalLevel() >= 75
+                    && Skills.getRealLevel(Skill.MINING) >= 10;
             case 15:
                 return !FreeQuest.GOBLIN_DIPLOMACY.isFinished() && Skills.getTotalLevel() >= 150;
             case 8:
                 return Skills.getRealLevel(Skill.WOODCUTTING) < PlayerData.targetWoodcuttingLevel
-                        && ScriptData.currentProgressionTaskI != taskId;
+                    && ScriptData.currentProgressionTaskI != taskId;
             case 4:
                 return Skills.getRealLevel(Skill.MINING) < PlayerData.targetMiningLevel
-                        && ScriptData.currentProgressionTaskI != taskId;
+                    && ScriptData.currentProgressionTaskI != taskId;
             case 2:
                 return Skills.getRealLevel(Skill.FISHING) < PlayerData.targetFishingLevel
-                        && ScriptData.currentProgressionTaskI != taskId;
+                    && ScriptData.currentProgressionTaskI != taskId;
             case 6:
                 return Skills.getRealLevel(Skill.RUNECRAFTING) < PlayerData.targetRunecraftingLevel
-                        && ScriptData.currentProgressionTaskI != taskId;
+                    && ScriptData.currentProgressionTaskI != taskId;
             case 1:
                 return Skills.getRealLevel(Skill.FIREMAKING) < PlayerData.targetFiremakingLevel
-                        && ScriptData.currentProgressionTaskI != taskId;
+                    && ScriptData.currentProgressionTaskI != taskId;
             case 7:
                 return Skills.getRealLevel(Skill.SMITHING) < PlayerData.targetSmithingLevel
-                        && ScriptData.currentProgressionTaskI != taskId;
+                    && ScriptData.currentProgressionTaskI != taskId;
             case 0:
                 return FreeQuest.COOKS_ASSISTANT.isFinished()
-                        && Skills.getRealLevel(Skill.COOKING) < PlayerData.targetCookingLevel
-                        && ScriptData.currentProgressionTaskI != taskId;
+                    && Skills.getRealLevel(Skill.COOKING) < PlayerData.targetCookingLevel
+                    && ScriptData.currentProgressionTaskI != taskId;
             case 3:
                 return Skills.getRealLevel(Skill.ATTACK) < PlayerData.targetAttackLevel
-                        && Skills.getRealLevel(Skill.STRENGTH) < PlayerData.targetStrengthLevel
-                        && Skills.getRealLevel(Skill.DEFENCE) < PlayerData.targetDefenceLevel
-                        && ScriptData.currentProgressionTaskI != taskId;
+                    && Skills.getRealLevel(Skill.STRENGTH) < PlayerData.targetStrengthLevel
+                    && Skills.getRealLevel(Skill.DEFENCE) < PlayerData.targetDefenceLevel
+                    && ScriptData.currentProgressionTaskI != taskId;
             case 5:
                 return Skills.getRealLevel(Skill.RANGED) < PlayerData.targetRangedLevel
-                        && ScriptData.currentProgressionTaskI != taskId;
+                    && ScriptData.currentProgressionTaskI != taskId;
             default:
                 return ScriptData.currentSecondaryTaskI != taskId;
         }
@@ -266,10 +273,12 @@ public class DetermineTaskLI extends LoopInterceptor {
         switch (ScriptData.currentPipelineI) {
             case 8: // Woodcutting
                 if (PlayerData.canEquipAxe) {
+                    Logger.log("Can equip axe: " + PlayerData.axe);
                     ScriptData.TASK_LOAD_OUTS[8].setEquipmentItem(0, PlayerData.axe, 1, 1, 1);
                     ScriptData.TASK_LOAD_OUTS[8].setInventoryItem(0, PlayerData.axe, 0, 0, 0);
                 }
                 else {
+                    Logger.log("Can't equip axe: " + PlayerData.axe);
                     ScriptData.TASK_LOAD_OUTS[8].setEquipmentItem(0, PlayerData.axe, 0, 0, 0);
                     ScriptData.TASK_LOAD_OUTS[8].setInventoryItem(0, PlayerData.axe, 1, 1, 1);
                 }
@@ -340,6 +349,7 @@ public class DetermineTaskLI extends LoopInterceptor {
                 break;
             case 3: // Melee
                 ScriptData.TASK_LOAD_OUTS[3].setInventoryItem(1, PlayerData.food, 1, ScriptData.SECURE_RANDOM.nextInt(25 - 5 + 1) + 5, ScriptData.SECURE_RANDOM.nextInt(1000 - 50 + 1) + 50); // Food
+                Logger.log("Food count: " + ScriptData.TASK_LOAD_OUTS[3].getEqpItemQtyMax(1));
                 int attackLevel = Skills.getRealLevel(Skill.ATTACK);
                 int strengthLevel = Skills.getRealLevel(Skill.STRENGTH);
                 int defenceLevel = Skills.getRealLevel(Skill.DEFENCE);
@@ -415,8 +425,11 @@ public class DetermineTaskLI extends LoopInterceptor {
                 ScriptData.currentArea = currentEntityNameCurrentAreaFactory();
                 break;
             case 5: // Ranged
-                ScriptData.TASK_LOAD_OUTS[5].setInventoryItem(1, PlayerData.food, 1, ScriptData.SECURE_RANDOM.nextInt(25 - 5 + 1) + 5, ScriptData.SECURE_RANDOM.nextInt(1000 - 50 + 1) + 50);
-                ScriptData.TASK_LOAD_OUTS[5].setEquipmentItem(4, ScriptData.SECURE_RANDOM.nextInt(25 - 5 + 1) + 5, ScriptData.SECURE_RANDOM.nextInt(1000 - 50 + 1) + 50);
+                int initMax = ScriptData.SECURE_RANDOM.nextInt(1000 - 50 + 1) + 50;
+                ScriptData.TASK_LOAD_OUTS[5].setInventoryItem(1, PlayerData.food, ScriptData.SECURE_RANDOM.nextInt(25 - 5 + 1) + 5, initMax, initMax);
+                initMax = ScriptData.SECURE_RANDOM.nextInt(1000 - 50 + 1) + 50;
+                ScriptData.TASK_LOAD_OUTS[5].setEquipmentItem(5, PlayerData.rangedArrows, ScriptData.SECURE_RANDOM.nextInt(25 - 5 + 1) + 5, initMax, initMax);
+                ScriptData.TASK_LOAD_OUTS[5].setInventoryItem(0, 983, 0, 0, 0);
                 int rangedLevel = Skills.getRealLevel(Skill.RANGED);
                 if (rangedLevel >= 50) {
                     switch (ScriptData.SECURE_RANDOM.nextInt(3)) {
@@ -435,6 +448,7 @@ public class DetermineTaskLI extends LoopInterceptor {
                     switch (ScriptData.SECURE_RANDOM.nextInt(2)) {
                         case 0:
                             ScriptData.currentEntityName = "Hill Giant";
+                            ScriptData.TASK_LOAD_OUTS[5].setInventoryItem(0, 983, 1, 1, 1);
                             break;
                         case 1:
                             ScriptData.currentEntityName = "Giant frog";
@@ -551,35 +565,36 @@ public class DetermineTaskLI extends LoopInterceptor {
                 }
                 break;
             case 0: // Cooking
+                int initial = ScriptData.SECURE_RANDOM.nextInt(300 - 50 + 1) + 50;
                 ScriptData.currentArea = new Area(3205, 3217, 3212, 3212); // Cook-o-matic 100
                 if (Skills.getRealLevel(Skill.COOKING) >= 25) {
-                    ScriptData.TASK_LOAD_OUTS[0].setInventoryItem(0, 331, 1, 28, 1); // Raw salmon
+                    ScriptData.TASK_LOAD_OUTS[0].setInventoryItem(0, 331, 1, 28, initial); // Raw salmon
                     ScriptData.TASK_LOAD_OUTS[0].setInventoryItem(1, 329, 0, 0, 0); // Cooked salmon
                 }
-                else if (Skills.getRealLevel(Skill.COOKING) >= 15 && PlayerData.playerHasItemID(335)) {
-                    ScriptData.TASK_LOAD_OUTS[0].setInventoryItem(0, 335, 1, 28, 1); // Raw trout
-                    ScriptData.TASK_LOAD_OUTS[0].setInventoryItem(1, 333, 1, 28, 1); // Trout
+                else if (Skills.getRealLevel(Skill.COOKING) >= 15) {
+                    ScriptData.TASK_LOAD_OUTS[0].setInventoryItem(0, 335, 1, 28, initial); // Raw trout
+                    ScriptData.TASK_LOAD_OUTS[0].setInventoryItem(1, 333, 1, 0, 0); // Trout
                 }
                 else {
                     switch (ScriptData.SECURE_RANDOM.nextInt(5)) {
                         case 0:
-                            ScriptData.TASK_LOAD_OUTS[0].setInventoryItem(0, 335, 1, 28, 1); // Raw shrimps
+                            ScriptData.TASK_LOAD_OUTS[0].setInventoryItem(0, 317, 1, 28, initial); // Raw shrimps
                             ScriptData.TASK_LOAD_OUTS[0].setInventoryItem(1, 315, 0, 0, 0); // Shrimps
                             break;
                         case 1:
-                            ScriptData.TASK_LOAD_OUTS[0].setInventoryItem(0, 321, 1, 28, 1); // Raw anchovies
+                            ScriptData.TASK_LOAD_OUTS[0].setInventoryItem(0, 321, 1, 28, initial); // Raw anchovies
                             ScriptData.TASK_LOAD_OUTS[0].setInventoryItem(1, 319, 0, 0, 0); // Anchovies
                             break;
                         case 2:
-                            ScriptData.TASK_LOAD_OUTS[0].setInventoryItem(0, 2132, 1, 28, 1); // Raw beef
+                            ScriptData.TASK_LOAD_OUTS[0].setInventoryItem(0, 2132, 1, 28, initial); // Raw beef
                             ScriptData.TASK_LOAD_OUTS[0].setInventoryItem(1, 2142, 0, 0, 0); // Cooked meat
                             break;
                         case 3:
-                            ScriptData.TASK_LOAD_OUTS[0].setInventoryItem(0, 2138, 1, 28, 1); // Raw chicken
-                            ScriptData.TASK_LOAD_OUTS[0].setInventoryItem(1, 2142, 0, 0, 0); // Cooked meat
+                            ScriptData.TASK_LOAD_OUTS[0].setInventoryItem(0, 2138, 1, 28, initial); // Raw chicken
+                            ScriptData.TASK_LOAD_OUTS[0].setInventoryItem(1, 2140, 0, 0, 0); // Cooked chicken
                             break;
                         case 4:
-                            ScriptData.TASK_LOAD_OUTS[0].setInventoryItem(0, 2134, 1, 28, 1); // Raw rat meat
+                            ScriptData.TASK_LOAD_OUTS[0].setInventoryItem(0, 2134, 1, 28, initial); // Raw rat meat
                             ScriptData.TASK_LOAD_OUTS[0].setInventoryItem(1, 2142, 0, 0, 0); // Cooked meat
                             break;
                     }
@@ -612,9 +627,8 @@ public class DetermineTaskLI extends LoopInterceptor {
                     localPathFinder.addBlacklistedTile(new Tile(1634, 4842, 0));
                     localPathFinder.addObstacle(new PassableObstacle("Wall", "Push"));
                     localPathFinder.addObstacle(new PassableObstacle("Sturdy door", "Open"));
-                    ScriptData.PIPELINES[10] = ScriptData.PIPELINES[14] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.finishQuestLI, new BlackKnightsFortressLI() });
+                    ScriptData.PIPELINES[10] = new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new BlackKnightsFortressLI());
                 }
-
                 break;
             case 25: // The Restless Ghost
                 ScriptData.currentFreeQuest = FreeQuest.THE_RESTLESS_GHOST;
@@ -627,11 +641,11 @@ public class DetermineTaskLI extends LoopInterceptor {
                 };
                 ScriptData.TASK_LOAD_OUTS[25] = new LoadOut(0, 1, null);
                 ScriptData.TASK_LOAD_OUTS[25].addEquipmentItem(552, 0, 0, 0); // GhostSpeak Amulet (uncharged)
-                ScriptData.PIPELINES[10] = ScriptData.PIPELINES[14] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.finishQuestLI, new TheRestlessGhostLI() });
+                ScriptData.PIPELINES[25] = new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new TheRestlessGhostLI());
                 break;
             case 11: // Cooks Assistant
                 ScriptData.currentFreeQuest = FreeQuest.COOKS_ASSISTANT;
-                ScriptData.PIPELINES[11] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.finishQuestLI, new CooksAssistantLI() });
+                ScriptData.PIPELINES[11] = new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new CooksAssistantLI());
                 ScriptData.questOrder = new byte[] { // 0 - start quest, 1 - egg, 2 - bucket of milk, 3 - pot of flour (pre-grainInHopper), 4 - pot of flour (post-grainInHopper), 5 - finish quest, 6 get bucket, 7 get pot; 6 before 2, 7 before 3, 3 direct left of 4)
                     0, 1, 2, 3, 4, 6, 7, 5
                 };
@@ -643,18 +657,26 @@ public class DetermineTaskLI extends LoopInterceptor {
                         ScriptData.questOrder[i] = ScriptData.questOrder[j];
                         ScriptData.questOrder[j] = t;
                     }
-
                     int p2 = -1, p3 = -1, p4 = -1, p6 = -1, p7 = -1;
                     for (int i = 1; i <= 6; i++) {
                         switch (ScriptData.questOrder[i]) {
-                            case 2: p2 = i; break;
-                            case 3: p3 = i; break;
-                            case 4: p4 = i; break;
-                            case 6: p6 = i; break;
-                            case 7: p7 = i; break;
+                            case 2:
+                                p2 = i;
+                                break;
+                            case 3:
+                                p3 = i;
+                                break;
+                            case 4:
+                                p4 = i;
+                                break;
+                            case 6:
+                                p6 = i;
+                                break;
+                            case 7:
+                                p7 = i;
+                                break;
                         }
                     }
-
                     if (p6 < p2 && p7 < p3 && p4 == p3 + 1) {
                         break;
                     }
@@ -678,7 +700,6 @@ public class DetermineTaskLI extends LoopInterceptor {
                 else {
                     ScriptData.currentArea2 = new Area(3249, 3280, 3260, 3268); // East of River Lum (2 here)
                 }
-
                 ScriptData.TASK_LOAD_OUTS[11] = new LoadOut(4, 0, null);
                 ScriptData.TASK_LOAD_OUTS[11].addInventoryItem(1933, 0, 1, 0); // Pot of flour
                 ScriptData.TASK_LOAD_OUTS[11].addInventoryItem(1931, 0, 1, 0); // Pot
@@ -701,7 +722,7 @@ public class DetermineTaskLI extends LoopInterceptor {
                 ScriptData.TASK_LOAD_OUTS[21].addInventoryItem(291, 0, 1, 0); // Research notes
                 ScriptData.TASK_LOAD_OUTS[21].addInventoryItem(290, 0, 1, 0); // Research package
                 ScriptData.TASK_LOAD_OUTS[21].addInventoryItem(1438, 0, 1, 0); // Air talisman
-                ScriptData.PIPELINES[11] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.finishQuestLI, new RuneMysteriesLI() });
+                ScriptData.PIPELINES[21] = new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new RuneMysteriesLI());
                 break;
             case 28: // X Marks the Spot
                 ScriptData.currentFreeQuest = FreeQuest.X_MARKS_THE_SPOT;
@@ -717,7 +738,7 @@ public class DetermineTaskLI extends LoopInterceptor {
                 ScriptData.TASK_LOAD_OUTS[28].addInventoryItem(23067, 0, 1, 0); // Treasure scroll (Step 1)
                 ScriptData.TASK_LOAD_OUTS[28].addInventoryItem(23068, 0, 1, 0); // Treasure scroll (Step 2)
                 ScriptData.TASK_LOAD_OUTS[28].addInventoryItem(23070, 0, 1, 0); // Treasure scroll (Step 3)
-                ScriptData.PIPELINES[11] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, new FinishQuestXMarksTheSpotLI(), new XMarksTheSpotLI()});
+                ScriptData.PIPELINES[28] = new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new FinishQuestXMarksTheSpotLI(), new XMarksTheSpotLI());
                 break;
             case 18: // Pirates Treasure
                 {
@@ -743,7 +764,7 @@ public class DetermineTaskLI extends LoopInterceptor {
                     ScriptData.TASK_LOAD_OUTS[18].addInventoryItem(995, coinsReq, coinsReq, coinsReq); // Coins
                     ScriptData.TASK_LOAD_OUTS[18].addInventoryItem(952, 0, 1, 0); // Spade
                     ScriptData.TASK_LOAD_OUTS[18].addEquipmentItem(PlayerData.meleeWeapon, 1, 1, 1);
-                    ScriptData.PIPELINES[18] = new BasicTaskPipeline(new LoopInterceptor[] { new HandleDialoguePiratesTreasureLI(), ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.finishQuestLI, new PiratesTreasureLI() });
+                    ScriptData.PIPELINES[18] = new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, new HandleDialoguePiratesTreasureLI(), ScriptData.finishQuestLI, new PiratesTreasureLI());
                 }
                 break;
             case 27: // Witchs Potion
@@ -794,11 +815,11 @@ public class DetermineTaskLI extends LoopInterceptor {
                         "Yes.",
                         "Yes, help me become one with my darker side."
                     };
-                    ScriptData.TASK_LOAD_OUTS[18] = new LoadOut(2, 1, null);
+                    ScriptData.TASK_LOAD_OUTS[27] = new LoadOut(2, 1, null);
                     int coinsReq = ScriptData.SECURE_RANDOM.nextInt(100 - 3 + 1) + 3;
-                    ScriptData.TASK_LOAD_OUTS[18].addInventoryItem(995, coinsReq, coinsReq, coinsReq); // Coins
-                    ScriptData.TASK_LOAD_OUTS[18].addEquipmentItem(PlayerData.meleeWeapon, 1, 1, 1);
-                    ScriptData.PIPELINES[18] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.finishQuestLI, new WitchsPotionLI() });
+                    ScriptData.TASK_LOAD_OUTS[27].addInventoryItem(995, coinsReq, coinsReq, coinsReq); // Coins
+                    ScriptData.TASK_LOAD_OUTS[27].addEquipmentItem(PlayerData.meleeWeapon, 1, 1, 1);
+                    ScriptData.PIPELINES[27] = new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new WitchsPotionLI());
                 }
                 break;
             case 14: // Ernest the Chicken
@@ -839,7 +860,7 @@ public class DetermineTaskLI extends LoopInterceptor {
                 ScriptData.TASK_LOAD_OUTS[14].addInventoryItem(276, 0, 1, 0); // Rubber tube
                 ScriptData.TASK_LOAD_OUTS[14].addInventoryItem(277, 0, 1, 0); // Oil can
                 ScriptData.TASK_LOAD_OUTS[14].addInventoryItem(271, 0, 1, 0); // Pressure gauge
-                ScriptData.PIPELINES[14] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.finishQuestLI, new ErnestTheChickenLI() });
+                ScriptData.PIPELINES[14] = new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new WitchsPotionLI());
                 break;
             case 24: // The Knights Sword
                 ScriptData.currentFreeQuest = FreeQuest.THE_KNIGHTS_SWORD;
@@ -874,7 +895,7 @@ public class DetermineTaskLI extends LoopInterceptor {
                     }
                     ScriptData.TASK_LOAD_OUTS[24].addInventoryItem(2351, 0, 2, 2); // Iron bar
                     ScriptData.TASK_LOAD_OUTS[24].addInventoryItem(2325, 0, 1, 1); // Redberry pie
-                    ScriptData.PIPELINES[24] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.finishQuestLI, new TheKnightsSwordLI() });
+                    ScriptData.PIPELINES[24] = new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new TheKnightsSwordLI());
                 }
                 break;
             case 17: // Misthalin Mystery
@@ -914,7 +935,7 @@ public class DetermineTaskLI extends LoopInterceptor {
                         ScriptData.TASK_LOAD_OUTS[17].addInventoryItem(21058, 0, 1, 0); // Notes
                         ScriptData.TASK_LOAD_OUTS[17].addInventoryItem(946, 0, 1, 0); // Knife
                         ScriptData.TASK_LOAD_OUTS[17].addInventoryItem(590, 0, 1, 0); // Tinderbox
-                        ScriptData.PIPELINES[17] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.finishQuestLI, new MisthalinMysteryLI() });
+                        ScriptData.PIPELINES[17] = new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new MisthalinMysteryLI());
                     }
                     LocalPathFinder localPathFinder = LocalPathFinder.getLocalPathFinder();
                     localPathFinder.addBlacklistedTile(new Tile(1643, 4839, 0));
@@ -961,7 +982,7 @@ public class DetermineTaskLI extends LoopInterceptor {
                         ScriptData.TASK_LOAD_OUTS[19].addInventoryItem(954, 1, 1, 1); // Rope
                         int foodReq = ScriptData.SECURE_RANDOM.nextInt(13 - 7 + 1) + 7;
                         ScriptData.TASK_LOAD_OUTS[19].addInventoryItem(PlayerData.food, foodReq, foodReq, foodReq);
-                        ScriptData.PIPELINES[19] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.finishQuestLI, new PrinceAliRescueLI() });
+                        ScriptData.PIPELINES[19] = new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new PrinceAliRescueLI());
                     }
                 }
                 break;
@@ -1000,7 +1021,7 @@ public class DetermineTaskLI extends LoopInterceptor {
                         ScriptData.TASK_LOAD_OUTS[9].addEquipmentItem(PlayerData.meleeShield, 1, 1, 1);
                         ScriptData.TASK_LOAD_OUTS[9].addEquipmentItem(PlayerData.AMULET, 1, 1, 1);
                         ScriptData.TASK_LOAD_OUTS[9].addEquipmentItem(PlayerData.cape, 1, 1, 1);
-                        ScriptData.PIPELINES[9] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.finishQuestLI, new BelowIceMountainLI() });
+                        ScriptData.PIPELINES[9] = new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new BelowIceMountainLI());
                     }
                 }
                 break;
@@ -1011,7 +1032,7 @@ public class DetermineTaskLI extends LoopInterceptor {
                     "Yes."
                 };
                 ScriptData.TASK_LOAD_OUTS[22] = new LoadOut(0, 0, null);
-                ScriptData.PIPELINES[9] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.finishQuestLI, new SheepShearerLI() });
+                ScriptData.PIPELINES[22] = new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new SheepShearerLI());
                 break;
             case 20: // Romeo and Juliet
                 ScriptData.currentFreeQuest = FreeQuest.ROMEO_AND_JULIET;
@@ -1025,7 +1046,7 @@ public class DetermineTaskLI extends LoopInterceptor {
                     "Talk about Romeo & Juliet."
                 };
                 ScriptData.TASK_LOAD_OUTS[20] = new LoadOut(0, 0, null);
-                ScriptData.PIPELINES[20] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.finishQuestLI, new RomeoAndJulietLI() });
+                ScriptData.PIPELINES[20] = new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new RomeoAndJulietLI());
                 break;
             case 16: // Imp Catcher
                 ScriptData.currentFreeQuest = FreeQuest.IMP_CATCHER;
@@ -1038,9 +1059,8 @@ public class DetermineTaskLI extends LoopInterceptor {
                 ScriptData.TASK_LOAD_OUTS[16].addInventoryItem(1476, 1, 1, 1); // White bead
                 ScriptData.TASK_LOAD_OUTS[16].addInventoryItem(1472, 1, 1, 1); // Yellow bead
                 ScriptData.TASK_LOAD_OUTS[16].addInventoryItem(1474, 1, 1, 1); // Black bead
-                ScriptData.PIPELINES[16] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.finishQuestLI, new ImpCatcherLI() });
+                ScriptData.PIPELINES[16] = new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new ImpCatcherLI());
                 break;
-
             case 26: // Vampyre Slayer
                 {
                     ScriptData.currentFreeQuest = FreeQuest.VAMPYRE_SLAYER;
@@ -1050,20 +1070,20 @@ public class DetermineTaskLI extends LoopInterceptor {
                         "A glass of your finest ale please.",
                         "Morgan needs your help!"
                     };
-                    ScriptData.TASK_LOAD_OUTS[26] = new LoadOut(4, 7, null);
-                    ScriptData.TASK_LOAD_OUTS[26].addInventoryItem(2347, 1, 1, 1); // Hammer
-                    ScriptData.TASK_LOAD_OUTS[26].addInventoryItem(1917, 1, 1, 1); // Beer
-                    ScriptData.TASK_LOAD_OUTS[26].addInventoryItem(1549, 0, 1, 0); // Stake
+                    ScriptData.TASK_LOAD_OUTS[16] = new LoadOut(4, 7, null);
+                    ScriptData.TASK_LOAD_OUTS[16].addInventoryItem(2347, 1, 1, 1); // Hammer
+                    ScriptData.TASK_LOAD_OUTS[16].addInventoryItem(1917, 1, 1, 1); // Beer
+                    ScriptData.TASK_LOAD_OUTS[16].addInventoryItem(1549, 0, 1, 0); // Stake
                     int foodReq = ScriptData.SECURE_RANDOM.nextInt(24 - 10 - 1) + 10;
-                    ScriptData.TASK_LOAD_OUTS[26].addInventoryItem(PlayerData.food, foodReq, foodReq, foodReq);
-                    ScriptData.TASK_LOAD_OUTS[26].addEquipmentItem(PlayerData.meleeWeapon, 1, 1, 1);
-                    ScriptData.TASK_LOAD_OUTS[26].addEquipmentItem(PlayerData.meleeHat, 1, 1, 1);
-                    ScriptData.TASK_LOAD_OUTS[26].addEquipmentItem(PlayerData.meleeChest, 1, 1, 1);
-                    ScriptData.TASK_LOAD_OUTS[26].addEquipmentItem(PlayerData.meleeLegs, 1, 1, 1);
-                    ScriptData.TASK_LOAD_OUTS[26].addEquipmentItem(PlayerData.meleeShield, 1, 1, 1);
-                    ScriptData.TASK_LOAD_OUTS[26].addEquipmentItem(PlayerData.AMULET, 1, 1, 1);
-                    ScriptData.TASK_LOAD_OUTS[26].addEquipmentItem(PlayerData.cape, 1, 1, 1);
-                    ScriptData.PIPELINES[23] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.finishQuestLI, new VampyreSlayerLI() });
+                    ScriptData.TASK_LOAD_OUTS[16].addInventoryItem(PlayerData.food, foodReq, foodReq, foodReq);
+                    ScriptData.TASK_LOAD_OUTS[16].addEquipmentItem(PlayerData.meleeWeapon, 1, 1, 1);
+                    ScriptData.TASK_LOAD_OUTS[16].addEquipmentItem(PlayerData.meleeHat, 1, 1, 1);
+                    ScriptData.TASK_LOAD_OUTS[16].addEquipmentItem(PlayerData.meleeChest, 1, 1, 1);
+                    ScriptData.TASK_LOAD_OUTS[16].addEquipmentItem(PlayerData.meleeLegs, 1, 1, 1);
+                    ScriptData.TASK_LOAD_OUTS[16].addEquipmentItem(PlayerData.meleeShield, 1, 1, 1);
+                    ScriptData.TASK_LOAD_OUTS[16].addEquipmentItem(PlayerData.AMULET, 1, 1, 1);
+                    ScriptData.TASK_LOAD_OUTS[16].addEquipmentItem(PlayerData.cape, 1, 1, 1);
+                    ScriptData.PIPELINES[16] = new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new VampyreSlayerLI());
                 }
                 break;
             case 23: // The Corsair Curse
@@ -1116,7 +1136,7 @@ public class DetermineTaskLI extends LoopInterceptor {
                     ScriptData.TASK_LOAD_OUTS[23].addEquipmentItem(PlayerData.rangedLegs, 1, 1, 1);
                     ScriptData.TASK_LOAD_OUTS[23].addEquipmentItem(PlayerData.AMULET, 1, 1, 1);
                     ScriptData.TASK_LOAD_OUTS[23].addEquipmentItem(PlayerData.cape, 1, 1, 1);
-                    ScriptData.PIPELINES[23] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.finishQuestLI, new TheCorsairCurseLI() });
+                    ScriptData.PIPELINES[23] = new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new TheCorsairCurseLI());
                 }
                 break;
             case 12: // Demon Slayer
@@ -1164,7 +1184,7 @@ public class DetermineTaskLI extends LoopInterceptor {
                     ScriptData.TASK_LOAD_OUTS[12].addEquipmentItem(PlayerData.rangedLegs, 1, 1, 1);
                     ScriptData.TASK_LOAD_OUTS[12].addEquipmentItem(PlayerData.AMULET, 1, 1, 1);
                     ScriptData.TASK_LOAD_OUTS[12].addEquipmentItem(PlayerData.cape, 1, 1, 1);
-                    ScriptData.PIPELINES[12] = new BasicTaskPipeline(new LoopInterceptor[] { new HandleDialogueDemonSlayerLI(), ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.finishQuestLI, new DemonSlayerLI() });
+                    ScriptData.PIPELINES[12] = new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, new HandleDialogueDemonSlayerLI(), ScriptData.finishQuestLI, new DemonSlayerLI());
                 }
                 break;
             case 13: // Dorics Quest
@@ -1231,7 +1251,7 @@ public class DetermineTaskLI extends LoopInterceptor {
                     ScriptData.TASK_LOAD_OUTS[13] = new LoadOut(1, 0, null);
                     ScriptData.TASK_LOAD_OUTS[13].addInventoryItem(PlayerData.pickaxe, 1, 1, 1);
                 }
-                ScriptData.PIPELINES[13] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.finishQuestLI, new DoricsQuestLI() });
+                ScriptData.PIPELINES[13] = new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new DoricsQuestLI());
                 break;
 
             case 15: // Goblin Diplomacy
@@ -1283,7 +1303,7 @@ public class DetermineTaskLI extends LoopInterceptor {
                     ScriptData.TASK_LOAD_OUTS[15] = new LoadOut(1, 0, null);
                     int coinsReq = ScriptData.SECURE_RANDOM.nextInt(100 - 45 + 1) + 45;
                     ScriptData.TASK_LOAD_OUTS[15].addInventoryItem(995, coinsReq, coinsReq, coinsReq);
-                    ScriptData.PIPELINES[13] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.finishQuestLI, new GoblinDiplomacyLI() });
+                    ScriptData.PIPELINES[13] = new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new GoblinDiplomacyLI());
                 }
                 break;
             case 29: // Chopping Logs
@@ -1325,12 +1345,12 @@ public class DetermineTaskLI extends LoopInterceptor {
             case 30: // Mining Ore
                 PlayerData.initializeBestPickaxeAvail(Skills.getRealLevel(Skill.MINING), Skills.getRealLevel(Skill.ATTACK));
                 if (PlayerData.canEquipBestPickaxeAvail) {
-                    ScriptData.TASK_LOAD_OUTS[4].setEquipmentItem(0, PlayerData.bestPickaxeAvail, 1, 1, 1);
-                    ScriptData.TASK_LOAD_OUTS[4].setInventoryItem(0, PlayerData.bestPickaxeAvail, 0, 0, 0);
+                    ScriptData.TASK_LOAD_OUTS[30].setEquipmentItem(0, PlayerData.bestPickaxeAvail, 1, 1, 1);
+                    ScriptData.TASK_LOAD_OUTS[30].setInventoryItem(0, PlayerData.bestPickaxeAvail, 0, 0, 0);
                 }
                 else {
-                    ScriptData.TASK_LOAD_OUTS[4].setEquipmentItem(0, PlayerData.bestPickaxeAvail, 0, 0, 0);
-                    ScriptData.TASK_LOAD_OUTS[4].setInventoryItem(0, PlayerData.bestPickaxeAvail, 1, 1, 1);
+                    ScriptData.TASK_LOAD_OUTS[30].setEquipmentItem(0, PlayerData.bestPickaxeAvail, 0, 0, 0);
+                    ScriptData.TASK_LOAD_OUTS[30].setInventoryItem(0, PlayerData.bestPickaxeAvail, 1, 1, 1);
                 }
                 if (ScriptData.currentEntityName == null) {
                     if (Skills.getRealLevel(Skill.MINING) >= 15) {

@@ -6,8 +6,8 @@ import loopinterceptors.DetermineTaskLI;
 
 public class DetermineTaskPipeline extends Pipeline {
 
-    public DetermineTaskPipeline() {
-        super(new LoopInterceptor[] { new DetermineTaskLI()});
+    public DetermineTaskPipeline(DetermineTaskLI determineTaskLI) {
+        super(new LoopInterceptor[] { determineTaskLI});
     }
 
     @Override
@@ -19,4 +19,5 @@ public class DetermineTaskPipeline extends Pipeline {
     public void shuffleLoopInterceptors() {
 
     }
+
 }

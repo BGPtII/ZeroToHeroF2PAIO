@@ -55,27 +55,35 @@ public class PersistedScriptInfo {
     public byte currentBuyI;
 
     public byte unPauseTimer;
+    public byte unPauseSetUpClientTimer;
 
     public Timer changePlayerSetUpTimer;
     public byte[] playerSetUpOpts;
     public byte[] playerSetUpValues;
     public byte playerSetUpI;
 
-    public int[] itemsToEqp = new int[11];
+    public int[] itemsToEqp;
     public byte itemsToEqpSize;
     public byte currentItemToEqp;
-    public byte closeOutOfBankToEqp = -1;
-    public byte checkLoadOutStage;
+    public byte closeOutOfBankToEqp;
+    public byte currentStageI;
+    public byte[] stage;
     public boolean locked;
+    public boolean restart;
 
+    public int[] invLoadOutIDs;
     public int[] invLoadOutMin;
     public int[] invLoadOutMax;
     public int[] invLoadOutInit;
     public byte invLoadOutSize;
+    public int[] eqpLoadOutIDs;
     public int[] eqpLoadOutMin;
     public int[] eqpLoadOutMax;
     public int[] eqpLoadOutInit;
     public byte eqpLoadOutSize;
+
     public boolean loadOutSetUp;
+
+    public byte bankingReturnToI;
 
 }

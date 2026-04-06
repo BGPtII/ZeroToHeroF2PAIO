@@ -2,23 +2,21 @@ package data;
 
 import org.dreambot.api.utilities.impl.Condition;
 
-import java.util.Arrays;
-
 /**
  *
  */
 public class LoadOut {
 
-    private int[] INV_ID;
-    private int[] INV_QTY_MIN; // < means reFill
-    private int[] INV_QTY_MAX; // > means depositExtra
-    private int[] INV_QTY_INIT; // < means reFill if initial == true
+    private int[] invIDs;
+    private int[] invQtyMin; // < means reFill
+    private int[] invQtyMax; // > means depositExtra
+    private int[] invQtyInit; // < means reFill if initial == true
     private byte invSize;
 
-    private int[] EQP_ID;
-    private int[] EQP_QTY_MIN;
-    private int[] EQP_QTY_MAX;
-    private int[] EQP_QTY_INIT;
+    private int[] eqpIDs;
+    private int[] eqpQtyMin;
+    private int[] eqpQtyMax;
+    private int[] eqpQtyInit;
     private byte eqpSize;
 
     private final Condition shouldBank;
@@ -26,15 +24,15 @@ public class LoadOut {
 
     public LoadOut(int invSize, int eqpSize, Condition shouldBank) {
         setUp = true;
-        INV_ID = new int[invSize];
-        INV_QTY_MIN = new int[invSize];
-        INV_QTY_MAX = new int[invSize];
-        INV_QTY_INIT = new int[invSize];
+        invIDs = new int[invSize];
+        invQtyMin = new int[invSize];
+        invQtyMax = new int[invSize];
+        invQtyInit = new int[invSize];
 
-        EQP_ID = new int[eqpSize];
-        EQP_QTY_MIN = new int[eqpSize];
-        EQP_QTY_MAX = new int[eqpSize];
-        EQP_QTY_INIT = new int[eqpSize];
+        eqpIDs = new int[eqpSize];
+        eqpQtyMin = new int[eqpSize];
+        eqpQtyMax = new int[eqpSize];
+        eqpQtyInit = new int[eqpSize];
 
         if (shouldBank == null) {
             this.shouldBank = () -> setUp;
@@ -45,28 +43,32 @@ public class LoadOut {
     }
 
     public void exportToPersistedScriptInfo(PersistedScriptInfo p) {
-        p.invLoadOutMin = INV_QTY_MIN;
-        p.invLoadOutMax = INV_QTY_MAX;
-        p.invLoadOutInit = INV_QTY_INIT;
+        p.invLoadOutIDs = invIDs;
+        p.invLoadOutMin = invQtyMin;
+        p.invLoadOutMax = invQtyMax;
+        p.invLoadOutInit = invQtyInit;
         p.invLoadOutSize = invSize;
 
-        p.eqpLoadOutMin = EQP_QTY_MIN;
-        p.eqpLoadOutMax = EQP_QTY_MAX;
-        p.eqpLoadOutInit = EQP_QTY_INIT;
+        p.eqpLoadOutIDs = eqpIDs;
+        p.eqpLoadOutMin = eqpQtyMin;
+        p.eqpLoadOutMax = eqpQtyMax;
+        p.eqpLoadOutInit = eqpQtyInit;
         p.eqpLoadOutSize = eqpSize;
 
         p.loadOutSetUp = setUp;
     }
 
     public void importFromPersistedScriptInfo(PersistedScriptInfo p) {
-        INV_QTY_MIN = p.invLoadOutMin;
-        INV_QTY_MAX = p.invLoadOutMax;
-        INV_QTY_INIT = p.invLoadOutInit;
+        invIDs = p.invLoadOutIDs;
+        invQtyMin = p.invLoadOutMin;
+        invQtyMax = p.invLoadOutMax;
+        invQtyInit = p.invLoadOutInit;
         invSize = p.invLoadOutSize;
 
-        EQP_QTY_MIN = p.eqpLoadOutMin;
-        EQP_QTY_MAX = p.eqpLoadOutMax;
-        EQP_QTY_INIT = p.eqpLoadOutInit;
+        eqpIDs = p.eqpLoadOutIDs;
+        eqpQtyMin = p.eqpLoadOutMin;
+        eqpQtyMax = p.eqpLoadOutMax;
+        eqpQtyInit = p.eqpLoadOutInit;
         eqpSize = p.eqpLoadOutSize;
 
         setUp = p.loadOutSetUp;
@@ -76,42 +78,43 @@ public class LoadOut {
         return shouldBank;
     }
 
+    public boolean shouldSetUp() {
+        return setUp;
+    }
+
     public void setSetUp(boolean setUp) {
         this.setUp = setUp;
     }
 
     public void addInventoryItem(int id, int min, int max, int init) {
-        INV_ID[invSize] = id;
-        INV_QTY_MIN[invSize] = min;
-        INV_QTY_MAX[invSize] = max;
-        INV_QTY_INIT[invSize++] = init;
+        invIDs[invSize] = id;
+        invQtyMin[invSize] = min;
+        invQtyMax[invSize] = max;
+        invQtyInit[invSize++] = init;
     }
     public void setInventoryItem(int index, int min, int max, int init) {
-        INV_QTY_MIN[index] = min;
-        INV_QTY_MAX[index] = max;
-        INV_QTY_INIT[index] = init;
+        invQtyMin[index] = min;
+        invQtyMax[index] = max;
+        invQtyInit[index] = init;
     }
     public void setInventoryItem(int index, int id, int min, int max, int init) {
-        INV_ID[index] = id;
-        INV_QTY_MIN[index] = min;
-        INV_QTY_MAX[index] = max;
-        INV_QTY_INIT[index] = init;
+        invIDs[index] = id;
+        invQtyMin[index] = min;
+        invQtyMax[index] = max;
+        invQtyInit[index] = init;
     }
     public void addEquipmentItem(int id, int min, int max, int init) {
-        EQP_ID[eqpSize] = id;
-        EQP_QTY_MIN[eqpSize] = min;
-        EQP_QTY_MAX[eqpSize] = max;
-        EQP_QTY_INIT[eqpSize++] = init;
+        eqpIDs[eqpSize] = id;
+        eqpQtyMin[eqpSize] = min;
+        eqpQtyMax[eqpSize] = max;
+        eqpQtyInit[eqpSize++] = init;
     }
-    public void setEquipmentItem(int index, int min, int init) {
-        EQP_QTY_MIN[index] = min;
-        EQP_QTY_INIT[index] = init;
-    }
+
     public void setEquipmentItem(int index, int id, int min, int max, int init) {
-        EQP_ID[index] = id;
-        EQP_QTY_MIN[index] = min;
-        EQP_QTY_MAX[index] = max;
-        EQP_QTY_INIT[index] = init;
+        eqpIDs[index] = id;
+        eqpQtyMin[index] = min;
+        eqpQtyMax[index] = max;
+        eqpQtyInit[index] = init;
     }
 
     public byte getEqpSize() {
@@ -122,30 +125,30 @@ public class LoadOut {
     }
 
     public int getInvItemID(int index) {
-        return INV_ID[index];
+        return invIDs[index];
     }
     public int getInvItemQtyInit(byte index) {
-        return INV_QTY_INIT[index];
+        return invQtyInit[index];
     }
     public int getInvItemQtyMin(int index)  {
-        return INV_QTY_MIN[index];
+        return invQtyMin[index];
     }
     public int getInvItemQtyMax(int index) {
-        return INV_QTY_MAX[index];
+        return invQtyMax[index];
     }
 
     public int getEqpItemID(int index) {
-        return EQP_ID[index];
+        return eqpIDs[index];
     }
 
     public int getEqpItemQtyInit(int index) {
-        return EQP_QTY_INIT[index];
+        return eqpQtyInit[index];
     }
     public int getEqpItemQtyMin(int index) {
-        return EQP_QTY_MIN[index];
+        return eqpQtyMin[index];
     }
     public int getEqpItemQtyMax(int index) {
-        return EQP_QTY_MAX[index];
+        return eqpQtyMax[index];
     }
 
 }

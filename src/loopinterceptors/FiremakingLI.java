@@ -17,7 +17,7 @@ public class FiremakingLI extends LoopInterceptor {
     private final Condition DONE_LIGHTING_LOGS = () -> !Players.getLocal().getTile().equals(ScriptData.currentTile);
 
     public FiremakingLI() {
-        super(() -> ScriptData.NOT_HANDLE_LOAD_OUT.verify() && ScriptData.IN_CURRENT_AREA.verify());
+        super(ScriptData.IN_CURRENT_AREA);
     }
 
     private void translateToNextAvailTile() {
@@ -52,25 +52,23 @@ public class FiremakingLI extends LoopInterceptor {
         }
 
         if (Inventory.isItemSelected()) {
-            if (Inventory.interact(590)) {
-                int[] logSlots = new int[28];
-                byte logSlotsSize = 0;
-                for (Item item : Inventory.toArray()) {
-                    if (item != null && item.getId() == ScriptData.TASK_LOAD_OUTS[1].getInvItemID(1)) {
-                        logSlots[logSlotsSize++] = item.getSlot();
-                    }
+            int[] logSlots = new int[28];
+            byte logSlotsSize = 0;
+            for (Item item : Inventory.toArray()) {
+                if (item != null && item.getId() == ScriptData.TASK_LOAD_OUTS[1].getInvItemID(1)) {
+                    logSlots[logSlotsSize++] = item.getSlot();
                 }
-                if (Inventory.slotInteract(logSlots[ScriptData.SECURE_RANDOM.nextInt(logSlotsSize)])) {
-                    Sleep.sleepUntil(DONE_LIGHTING_LOGS, ScriptData.SECURE_RANDOM.nextInt(30000 - 15000 + 1) + 15000, 300);
-                    if (DONE_LIGHTING_LOGS.verify()) {
-                        translateToNextAvailTile();
-                    }
+            }
+            if (Inventory.slotInteract(logSlots[ScriptData.SECURE_RANDOM.nextInt(logSlotsSize)])) {
+                Sleep.sleepUntil(DONE_LIGHTING_LOGS, ScriptData.SECURE_RANDOM.nextInt(30000 - 15000 + 1) + 15000, 300);
+                if (DONE_LIGHTING_LOGS.verify()) {
+                    translateToNextAvailTile();
                 }
             }
             return ScriptData.returnMSFast();
         }
 
-        if (Inventory.slotInteract(590)) { // Tinderbox
+        if (Inventory.use(590)) { // Tinderbox
             return ScriptData.returnMSNormal();
         }
 

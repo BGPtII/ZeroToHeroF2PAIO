@@ -2,6 +2,7 @@ package loopinterceptors;
 
 import data.global.ScriptData;
 import framework.LoopInterceptor;
+import org.dreambot.api.methods.container.impl.Inventory;
 import org.dreambot.api.methods.container.impl.bank.Bank;
 import org.dreambot.api.utilities.Logger;
 import org.dreambot.api.utilities.Sleep;
@@ -17,7 +18,7 @@ public class DepositLI extends LoopInterceptor {
         super(null);
         ID = new int[28];
         QTY = new int[28];
-        setShouldHandle(() -> depositSize != 0);
+        setShouldHandle(() -> depositSize != 0 && Bank.isOpen());
     }
 
     public void addItemToDeposit(int id, int qty) {
@@ -64,8 +65,23 @@ public class DepositLI extends LoopInterceptor {
         }
         else {
             int id = ID[depositI];
+            Logger.log("id: " + id);
             int bankCount = Bank.count(id);
-            if (Bank.deposit(id, QTY[depositI])) {
+            Logger.log("bankCount: " + id);
+            int invCount = Inventory.count(id);
+            Logger.log("invCount: " + invCount);
+            if (invCount == 0) {
+                depositI++;
+            }
+            else if (invCount >= QTY[depositI]) {
+                if (Bank.depositAll(id)) {
+                    Sleep.sleepUntil(() -> Bank.count(id) != bankCount, ScriptData.SECURE_RANDOM.nextInt(15000 - 5000 + 1) + 5000, 300);
+                    if (Bank.count(id) != bankCount) {
+                        depositI++;
+                    }
+                }
+            }
+            else if (Bank.deposit(id, QTY[depositI])) {
                 Sleep.sleepUntil(() -> Bank.count(id) != bankCount, ScriptData.SECURE_RANDOM.nextInt(15000 - 5000 + 1) + 5000, 300);
                 if (Bank.count(id) != bankCount) {
                     depositI++;

@@ -6,6 +6,7 @@ import framework.LoopInterceptor;
 import org.dreambot.api.methods.container.impl.Inventory;
 import org.dreambot.api.methods.skills.Skill;
 import org.dreambot.api.methods.skills.Skills;
+import org.dreambot.api.utilities.Logger;
 import org.dreambot.api.wrappers.items.Item;
 
 public class EatChosenFoodLI extends LoopInterceptor {
@@ -16,6 +17,7 @@ public class EatChosenFoodLI extends LoopInterceptor {
 
     @Override
     public int handle() {
+        Logger.log("Needs to eat food");
         int[] foodSlots = new int[28];
         byte foodSlotsSize = 0;
         for (Item item : Inventory.toArray()) {

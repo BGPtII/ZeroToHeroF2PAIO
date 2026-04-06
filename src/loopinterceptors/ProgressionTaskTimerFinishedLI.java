@@ -1,11 +1,10 @@
 package loopinterceptors;
 
 import data.global.ScriptData;
-import framework.LoopInterceptor;
 
-public class ProgressionTaskFinishedLI extends LoopInterceptor {
+public class ProgressionTaskTimerFinishedLI extends TaskTimerFinishedLI {
 
-    public ProgressionTaskFinishedLI() {
+    public ProgressionTaskTimerFinishedLI() {
         super(() -> ScriptData.progressionTaskTimer != null && ScriptData.progressionTaskTimer.finished());
     }
 

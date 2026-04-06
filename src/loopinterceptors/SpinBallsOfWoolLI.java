@@ -3,18 +3,18 @@ package loopinterceptors;
 import data.global.ScriptData;
 import framework.LoopInterceptor;
 import org.dreambot.api.ClientSettings;
+import org.dreambot.api.input.Mouse;
 import org.dreambot.api.methods.container.impl.Inventory;
-import org.dreambot.api.methods.dialogues.Dialogues;
 import org.dreambot.api.methods.interactive.GameObjects;
 import org.dreambot.api.methods.interactive.Players;
+import org.dreambot.api.methods.skills.Skill;
+import org.dreambot.api.methods.skills.Skills;
 import org.dreambot.api.methods.walking.impl.Walking;
 import org.dreambot.api.methods.widget.helpers.ItemProcessing;
+import org.dreambot.api.utilities.Logger;
 import org.dreambot.api.utilities.Sleep;
-import org.dreambot.api.utilities.impl.Condition;
 
 public class SpinBallsOfWoolLI extends LoopInterceptor {
-
-    private final Condition STOPPED_PROCESSING = () -> !Inventory.contains(1737) || Dialogues.canContinue() || Dialogues.areOptionsAvailable() || !ItemProcessing.isOpen();
 
     public SpinBallsOfWoolLI() {
         super(() -> Inventory.count(1737) + Inventory.count(1759) == 27 // Wool, Ball of wool
@@ -24,11 +24,20 @@ public class SpinBallsOfWoolLI extends LoopInterceptor {
     @Override
     public int handle() {
         if (ItemProcessing.isOpen()) {
-            if (ItemProcessing.makeAll(1737)) { // The auto toggle of run will interrupt processing
+            if (ItemProcessing.makeAll(1759)) { // The auto toggle of run will interrupt processing
                 int walkingTrs = Walking.getRunThreshold();
                 Walking.setRunThreshold(101);
-                Sleep.sleepUntil(STOPPED_PROCESSING, ScriptData.SECURE_RANDOM.nextInt(180000 - 120000 + 1) + 120000, 500);
+                if (ScriptData.rollChance(65)) {
+                    Logger.log("Hover over a skill");
+                    Skills.hoverSkill(Skill.CRAFTING);
+                }
+                else if (ScriptData.rollChance(55)) {
+                    Logger.log("Moving mouse off screen");
+                    Mouse.moveOutsideScreen(ScriptData.rollChance(85));
+                }
+                Sleep.sleepUntil(ScriptData.STOPPED_PROCESSING, ScriptData.SECURE_RANDOM.nextInt(180000 - 120000 + 1) + 120000, 500);
                 Walking.setRunThreshold(walkingTrs);
+                Logger.log("Finished processing");
             }
             return ScriptData.returnMSFast();
         }

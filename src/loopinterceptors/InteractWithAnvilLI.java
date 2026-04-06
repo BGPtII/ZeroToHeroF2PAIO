@@ -16,7 +16,7 @@ public class InteractWithAnvilLI extends LoopInterceptor {
     @Override
     public int handle() {
         if (ScriptData.currentGameObject == null || !ScriptData.currentGameObject.exists() || ScriptData.currentGameObject.getId() != 2097) { // Anvil#Normal
-            ScriptData.currentGameObject = GameObjects.closest(297);
+            ScriptData.currentGameObject = GameObjects.closest(2097);
             return ScriptData.returnMSFast();
         }
         if (!ScriptData.currentGameObject.canReach()) {

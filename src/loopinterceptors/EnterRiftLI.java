@@ -1,16 +1,18 @@
 package loopinterceptors;
 
+import data.global.PlayerData;
 import data.global.ScriptData;
 import framework.LoopInterceptor;
 import org.dreambot.api.methods.container.impl.Inventory;
 import org.dreambot.api.methods.interactive.GameObjects;
 import org.dreambot.api.methods.interactive.Players;
+import org.dreambot.api.utilities.Logger;
 import org.dreambot.api.utilities.Sleep;
 
 public class EnterRiftLI extends LoopInterceptor {
 
     public EnterRiftLI() {
-        super(() -> !ScriptData.currentArea.contains(Players.getLocal()) && ScriptData.NOT_HANDLE_LOAD_OUT.verify());
+        super(() -> !ScriptData.currentArea.contains(Players.getLocal()));
     }
 
     @Override
@@ -26,6 +28,7 @@ public class EnterRiftLI extends LoopInterceptor {
             ScriptData.currentGameObject = GameObjects.closest("Mysterious ruins");
             return ScriptData.returnMSFast();
         }
+
         if (!ScriptData.currentGameObject.canReach()) {
             if (ScriptData.walkToEntity(ScriptData.currentGameObject)) {
                 return ScriptData.returnMSNormal();
@@ -33,14 +36,16 @@ public class EnterRiftLI extends LoopInterceptor {
             return ScriptData.returnMSFast();
         }
 
-        if (ScriptData.TASK_LOAD_OUTS[6].getEqpItemID(0) >= 5000 || Inventory.isItemSelected()) { // Tiara == > 5000
-            if (ScriptData.currentGameObject.interact("Craft-rune")) {
-                Sleep.sleepUntil(ScriptData.NOT_HANDLE_LOAD_OUT, ScriptData.SECURE_RANDOM.nextInt(15000 - 5000 + 1) + 5000, 300);
+        if (PlayerData.currentRunecraftingMedium >= 5000 || Inventory.isItemSelected()) { // Tiara == > 5000
+            Logger.log(PlayerData.currentRunecraftingMedium);
+            if (ScriptData.currentGameObject.interact()) {
+                Sleep.sleepUntil(() -> !Inventory.contains(7936), ScriptData.SECURE_RANDOM.nextInt(15000 - 5000 + 1) + 5000, 300); // Pure essence
             }
             return ScriptData.returnMSFast();
         }
 
-        Inventory.interact(ScriptData.TASK_LOAD_OUTS[6].getEqpItemID(0));
+        Inventory.interact(PlayerData.currentRunecraftingMedium);
         return ScriptData.returnMSNormal();
     }
+
 }

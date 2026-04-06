@@ -11,7 +11,7 @@ public class RunecraftLI extends LoopInterceptor {
 
 
     public RunecraftLI() {
-        super(() -> ScriptData.currentArea.contains(Players.getLocal()) && ScriptData.NOT_HANDLE_LOAD_OUT.verify());
+        super(() -> ScriptData.currentArea.contains(Players.getLocal()));
     }
 
     @Override

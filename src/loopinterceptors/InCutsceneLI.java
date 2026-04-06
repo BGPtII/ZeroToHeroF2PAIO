@@ -4,6 +4,7 @@ import data.global.ScriptData;
 import framework.LoopInterceptor;
 import org.dreambot.api.Client;
 import org.dreambot.api.methods.dialogues.Dialogues;
+import org.dreambot.api.utilities.Logger;
 import org.dreambot.api.utilities.Sleep;
 import org.dreambot.api.utilities.impl.Condition;
 
@@ -13,11 +14,6 @@ public class InCutsceneLI extends LoopInterceptor {
 
     public InCutsceneLI() {
         super(() -> Client.isInCutscene() && !Dialogues.canContinue() && !Dialogues.areOptionsAvailable());
-    }
-
-    @Override
-    public boolean shouldHandle() {
-        return Client.isInCutscene();
     }
 
     @Override

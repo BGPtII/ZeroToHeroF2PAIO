@@ -4,6 +4,7 @@ import data.global.ScriptData;
 import framework.LoopInterceptor;
 import org.dreambot.api.methods.container.impl.Inventory;
 import org.dreambot.api.methods.container.impl.bank.Bank;
+import org.dreambot.api.utilities.Logger;
 import org.dreambot.api.utilities.Sleep;
 
 public class WithdrawLI extends LoopInterceptor {
@@ -17,11 +18,12 @@ public class WithdrawLI extends LoopInterceptor {
         super(null);
         ID = new int[28];
         QTY = new int[28];
-        setShouldHandle(() -> withdrawSize != 0 && ScriptData.bankWithdrawModeLI.getBankMode() == Bank.getWithdrawMode());
+        setShouldHandle(() -> withdrawSize != 0 && ScriptData.bankWithdrawModeLI.getBankMode() == Bank.getWithdrawMode() && Bank.isOpen());
     }
 
     public void reset() {
         withdrawSize = 0;
+        withdrawI = 0;
     }
 
     public void addItemToWithdraw(int id, int qty) {
@@ -47,12 +49,13 @@ public class WithdrawLI extends LoopInterceptor {
 
     @Override
     public int handle() {
-        if (withdrawI == withdrawSize) {
+        if (withdrawI >= withdrawSize) {
             withdrawSize = 0;
             withdrawI = 0;
             return ScriptData.returnMSFast();
         }
         else if (Inventory.isFull()) {
+            Logger.log("Inventory is full, can't withdraw any more, resetting");
             withdrawSize = 0;
             withdrawI = 0;
             return ScriptData.returnMSFast();
@@ -64,6 +67,7 @@ public class WithdrawLI extends LoopInterceptor {
         else {
             int id = ID[withdrawI];
             int bankCount = Bank.count(id);
+            Logger.log("Needs to withdraw id: " + id + ", qty: " + QTY[withdrawI]);
             if (Bank.withdraw(id, QTY[withdrawI])) {
                 Sleep.sleepUntil(() -> Bank.count(id) != bankCount, ScriptData.SECURE_RANDOM.nextInt(15000 - 5000 + 1) + 5000, 300);
                 if (Bank.count(id) != bankCount) {

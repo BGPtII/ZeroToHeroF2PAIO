@@ -9,13 +9,13 @@ import org.dreambot.api.utilities.Logger;
 
 import java.util.Arrays;
 
-public class HandleDialogueDemonSlayerLI extends LoopInterceptor {
+public class HandleDialogueDemonSlayerLI extends CustomDialogueLI {
 
     private String[] incantationOrder;
     private byte incantationOrderI;
 
     public HandleDialogueDemonSlayerLI() {
-        super(Dialogues::inDialogue);
+        super();
     }
 
     @Override

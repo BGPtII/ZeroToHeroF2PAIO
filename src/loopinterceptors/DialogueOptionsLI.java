@@ -3,6 +3,7 @@ package loopinterceptors;
 import data.global.ScriptData;
 import framework.LoopInterceptor;
 import org.dreambot.api.methods.dialogues.Dialogues;
+import org.dreambot.api.utilities.Logger;
 
 public class DialogueOptionsLI extends LoopInterceptor {
 
@@ -12,6 +13,7 @@ public class DialogueOptionsLI extends LoopInterceptor {
 
     @Override
     public int handle() {
+        Logger.log("Entered DialogueOptionsLI");
         String[] opts = Dialogues.getOptions();
         if (opts != null) {
             boolean containsOpt = false;

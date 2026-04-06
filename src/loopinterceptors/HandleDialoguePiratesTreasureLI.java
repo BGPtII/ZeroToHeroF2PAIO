@@ -4,10 +4,10 @@ import data.global.ScriptData;
 import framework.LoopInterceptor;
 import org.dreambot.api.methods.dialogues.Dialogues;
 
-public class HandleDialoguePiratesTreasureLI extends LoopInterceptor {
+public class HandleDialoguePiratesTreasureLI extends CustomDialogueLI {
 
     public HandleDialoguePiratesTreasureLI() {
-        super(Dialogues::inDialogue);
+        super();
     }
 
     @Override

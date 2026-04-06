@@ -6,6 +6,7 @@ import data.PersistedScriptInfo;
 import data.global.PlayerData;
 import data.global.ScriptData;
 import loopinterceptors.*;
+import org.dreambot.api.input.Mouse;
 import org.dreambot.api.methods.Randoms;
 import org.dreambot.api.methods.combat.CombatStyle;
 import org.dreambot.api.methods.container.impl.Inventory;
@@ -24,9 +25,7 @@ import org.dreambot.api.utilities.Logger;
 import org.dreambot.api.utilities.Timer;
 import org.dreambot.api.wrappers.widgets.message.Message;
 import data.LoadOut;
-import pipelines.BasicTaskPipeline;
-import pipelines.DetermineTaskPipeline;
-import pipelines.GrandExchangePipeline;
+import pipelines.*;
 
 import java.awt.Graphics2D;
 import java.io.File;
@@ -46,9 +45,9 @@ public class SCScript extends AbstractScript implements ChatListener, Experience
     @Override
     public void onPaint(Graphics2D g) {
         g.drawString("currentPipelineI: " + ScriptData.currentPipelineI, 10, 10);
-        g.drawString("progressionTaskTimer: " + ((ScriptData.progressionTaskTimer == null) ? "null" : ScriptData.progressionTaskTimer.remaining()), 10, 20);
-        g.drawString("secondaryTaskTimer: " + ((ScriptData.secondaryTaskTimer == null) ? "null" : ScriptData.secondaryTaskTimer.remaining()), 10, 30);
-        g.drawString("changePlayerSetUpTimer: " + ((ScriptData.changePlayerSetUpTimer == null) ? "null" : ScriptData.changePlayerSetUpTimer.remaining()), 10, 40);
+        g.drawString("progressionTaskTimer: " + ((ScriptData.progressionTaskTimer == null) ? "null" : Timer.formatTime(ScriptData.progressionTaskTimer.remaining())), 10, 20);
+        g.drawString("secondaryTaskTimer: " + ((ScriptData.secondaryTaskTimer == null) ? "null" : Timer.formatTime(ScriptData.secondaryTaskTimer.remaining())), 10, 30);
+        g.drawString("changePlayerSetUpTimer: " + ((ScriptData.changePlayerSetUpTimer == null) ? "null" : Timer.formatTime(ScriptData.changePlayerSetUpTimer.remaining())), 10, 40);
         g.drawString("taskType:" + ScriptData.taskType, 10, 50);
     }
 
@@ -255,6 +254,7 @@ public class SCScript extends AbstractScript implements ChatListener, Experience
 
     @Override
     public void onStart() {
+        Mouse.setMouseAlgorithm(new SmartMouseMultiDir());
         Randoms.setSeed(AccountManager.getAccountUsername() + AccountManager.getAccountBankPin() + AccountManager.getAccountTOTPKey());
         initializeTaskWeights();
         initializePipelines();
@@ -275,9 +275,11 @@ public class SCScript extends AbstractScript implements ChatListener, Experience
         PlayerData.initializeRangedHands(Skills.getRealLevel(Skill.RANGED));
         PlayerData.initializeRangedWeaponArrows(Skills.getRealLevel(Skill.RANGED));
         PlayerData.initializeCurrentRunecraftMedium(Skills.getRealLevel(Skill.RUNECRAFTING));
+        PlayerData.initializeBestPickaxeAvail(Skills.getRealLevel(Skill.MINING), Skills.getRealLevel(Skill.ATTACK));
+        PlayerData.initializeBestAxeAvail(Skills.getRealLevel(Skill.WOODCUTTING), Skills.getRealLevel(Skill.ATTACK));
         initializeLoadOut();
         deSerializeScriptState();
-        Logger.log("Finished onStart");
+        Logger.log("Finished onStart, currentEntityName: " + ScriptData.currentEntityName);
     }
 
     @Override
@@ -287,11 +289,11 @@ public class SCScript extends AbstractScript implements ChatListener, Experience
 
     @Override
     public void onPause() {
-        if (ScriptData.progressionTaskTimer != null && !ScriptData.progressionTaskTimer.isPaused()) {
+        if (ScriptData.taskType == 0 && ScriptData.progressionTaskTimer != null && !ScriptData.progressionTaskTimer.isPaused()) {
             ScriptData.progressionTaskTimer.pause();
             ScriptData.unPauseTimer = 1;
         }
-        else if (ScriptData.secondaryTaskTimer != null && !ScriptData.secondaryTaskTimer.isPaused()) {
+        else if (ScriptData.taskType != 0 && ScriptData.secondaryTaskTimer != null && !ScriptData.secondaryTaskTimer.isPaused()) {
             ScriptData.secondaryTaskTimer.pause();
             ScriptData.unPauseTimer = 2;
         }
@@ -452,7 +454,7 @@ public class SCScript extends AbstractScript implements ChatListener, Experience
         ScriptData.TASK_LOAD_OUTS[2].addInventoryItem(0, 0, 0, 0);
         ScriptData.TASK_LOAD_OUTS[2].addInventoryItem(0, 0, 0, 0);
 
-        ScriptData.TASK_LOAD_OUTS[3] = new LoadOut(2, 7,
+        ScriptData.TASK_LOAD_OUTS[3] = new LoadOut(2, 7, // Melee
             () -> Inventory.count(PlayerData.food) < ScriptData.TASK_LOAD_OUTS[3].getInvItemQtyMin(1) // 1 == food index
                 || (Inventory.isFull() && (ScriptData.TASK_LOAD_OUTS[3].getInvItemID(0) == 0
                     || !Inventory.contains(PlayerData.food)
@@ -468,23 +470,23 @@ public class SCScript extends AbstractScript implements ChatListener, Experience
         ScriptData.TASK_LOAD_OUTS[3].addInventoryItem(983, 0, 0, 0); // Increase to 1 when rolling Hill Giants in Edgeville Dungeon
         ScriptData.TASK_LOAD_OUTS[3].addInventoryItem(PlayerData.food, 0, 0, 0); // Change max/init values every task roll
 
-        ScriptData.TASK_LOAD_OUTS[5] = new LoadOut(2, 8,
+        ScriptData.TASK_LOAD_OUTS[5] = new LoadOut(2, 8, // Ranged
             () -> Inventory.count(PlayerData.food) < ScriptData.TASK_LOAD_OUTS[5].getInvItemQtyMin(1)
                 || Equipment.count(PlayerData.rangedArrows) < ScriptData.TASK_LOAD_OUTS[5].getEqpItemQtyMin(4)
         );
-        ScriptData.TASK_LOAD_OUTS[5].addEquipmentItem(0, 1, 1, 1);
-        ScriptData.TASK_LOAD_OUTS[5].addEquipmentItem(0, 1, 1, 1);
-        ScriptData.TASK_LOAD_OUTS[5].addEquipmentItem(0, 1, 1, 1);
-        ScriptData.TASK_LOAD_OUTS[5].addEquipmentItem(0, 1, 1, 1);
-        ScriptData.TASK_LOAD_OUTS[5].addEquipmentItem(0, 0, 0, 1); // Determine init and min once per task
-        ScriptData.TASK_LOAD_OUTS[5].addEquipmentItem(0, 1, 1, 1); // Determine init and min once per task
+        ScriptData.TASK_LOAD_OUTS[5].addEquipmentItem(PlayerData.rangedHat, 1, 1, 1);
+        ScriptData.TASK_LOAD_OUTS[5].addEquipmentItem(PlayerData.rangedChest, 1, 1, 1);
+        ScriptData.TASK_LOAD_OUTS[5].addEquipmentItem(PlayerData.rangedLegs, 1, 1, 1);
+        ScriptData.TASK_LOAD_OUTS[5].addEquipmentItem(PlayerData.rangedHands, 1, 1, 1);
+        ScriptData.TASK_LOAD_OUTS[5].addEquipmentItem(PlayerData.rangedWeapon, 1, 1, 1);
+        ScriptData.TASK_LOAD_OUTS[5].addEquipmentItem(PlayerData.rangedArrows, 0, 0, 0); // Determine min/max/init once per task
         ScriptData.TASK_LOAD_OUTS[5].addEquipmentItem(PlayerData.AMULET, 1, 1, 1);
         ScriptData.TASK_LOAD_OUTS[5].addEquipmentItem(PlayerData.cape, 1, 1, 1);
         ScriptData.TASK_LOAD_OUTS[5].addInventoryItem(983, 0, 0, 0); // Increase to 1 when rolling Hill Giants in Edgeville Dungeon
         ScriptData.TASK_LOAD_OUTS[5].addInventoryItem(PlayerData.food, 0, 0, 0); // Change max/init values every task roll
 
         ScriptData.TASK_LOAD_OUTS[6] = new LoadOut(2, 1, () -> !Inventory.contains(7936)); // Runecrafting
-        ScriptData.TASK_LOAD_OUTS[6].addEquipmentItem(0, 0, 0, 1);
+        ScriptData.TASK_LOAD_OUTS[6].addEquipmentItem(0, 0, 0, 0);
         ScriptData.TASK_LOAD_OUTS[6].addInventoryItem(7936, 1, 28, 0); // Pure essence
         ScriptData.TASK_LOAD_OUTS[6].addInventoryItem(0, 0, 0, 0);
 
@@ -493,18 +495,19 @@ public class SCScript extends AbstractScript implements ChatListener, Experience
         ScriptData.TASK_LOAD_OUTS[1].addInventoryItem(0, 0, 0, 0);
 
 
-        ScriptData.TASK_LOAD_OUTS[7] = new LoadOut(2, 0, () -> !Inventory.contains(ScriptData.TASK_LOAD_OUTS[1].getInvItemID(1))); // Smithing
+        ScriptData.TASK_LOAD_OUTS[7] = new LoadOut(2, 0, () -> !Inventory.contains(ScriptData.TASK_LOAD_OUTS[7].getInvItemID(1))); // Smithing
         ScriptData.TASK_LOAD_OUTS[7].addInventoryItem(2347, 1, 1, 1); // Hammer
         ScriptData.TASK_LOAD_OUTS[7].addInventoryItem(0, 0, 0, 0); // Bar
 
-        ScriptData.TASK_LOAD_OUTS[0] = new LoadOut(1, 0, () -> !Inventory.contains(ScriptData.TASK_LOAD_OUTS[1].getInvItemID(1))); // Cooking
-        ScriptData.TASK_LOAD_OUTS[0].addInventoryItem(0, 0, 0, 0); // Raw meat
+        ScriptData.TASK_LOAD_OUTS[0] = new LoadOut(2, 0, () -> !Inventory.contains(ScriptData.TASK_LOAD_OUTS[0].getInvItemID(0))); // Cooking
+        ScriptData.TASK_LOAD_OUTS[0].addInventoryItem(0, 0, 0, 0); // Raw x
+        ScriptData.TASK_LOAD_OUTS[0].addInventoryItem(0, 0, 0, 0); // Cooked xe
 
         ScriptData.TASK_LOAD_OUTS[32] = new LoadOut(2, 0, () -> Inventory.count(1759) == 27); // Spinning Balls of Wool
         ScriptData.TASK_LOAD_OUTS[32].addInventoryItem(1735, 0, 1, 0); // Shears
         ScriptData.TASK_LOAD_OUTS[32].addInventoryItem(1737, 0, 27, 0); // Wool
 
-        ScriptData.TASK_LOAD_OUTS[31] = new LoadOut(2, 0, () -> !Inventory.containsAll(ScriptData.TASK_LOAD_OUTS[1].getInvItemID(0), ScriptData.TASK_LOAD_OUTS[1].getInvItemID(1))); // Smelting Bars
+        ScriptData.TASK_LOAD_OUTS[31] = new LoadOut(2, 0, () -> !Inventory.containsAll(ScriptData.TASK_LOAD_OUTS[31].getInvItemID(0), ScriptData.TASK_LOAD_OUTS[1].getInvItemID(1))); // Smelting Bars
         ScriptData.TASK_LOAD_OUTS[31].addInventoryItem(0, 0, 0, 0);
         ScriptData.TASK_LOAD_OUTS[31].addInventoryItem(0, 0, 0, 0);
 
@@ -518,25 +521,25 @@ public class SCScript extends AbstractScript implements ChatListener, Experience
     }
 
     private void initializePipelines() { // Don't initialize quests
-        ScriptData.PIPELINES[0] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.checkLoadOutLI, ScriptData.progressionTaskFinishedLI, ScriptData.itemProcessingLI, ScriptData.interactWithGameObjectSingularLI, ScriptData.walkToCurrentAreaLI}); // Cooking
-        ScriptData.PIPELINES[1] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.checkLoadOutLI, ScriptData.progressionTaskFinishedLI, ScriptData.walkToCurrentAreaLI, new FiremakingLI()}); // Firemaking
-        ScriptData.PIPELINES[2] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.checkLoadOutLI, ScriptData.progressionTaskFinishedLI, ScriptData.walkToCurrentAreaLI, new FishingLI()}); // Fishing
-        ScriptData.PIPELINES[3] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.checkLoadOutLI, ScriptData.progressionTaskFinishedLI, ScriptData.walkToCurrentAreaLI, ScriptData.attackTargetNPCLI, ScriptData.checkMeleeCombatStyleLI, ScriptData.cantReachCurrentNPCLI, ScriptData.currentTileToTargetNPCTileLI, ScriptData.eatChosenFoodLI, ScriptData.findValidNPCTargetLI, ScriptData.lootNPCDropsLI }); // Melee
-        ScriptData.PIPELINES[4] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.checkLoadOutLI, ScriptData.progressionTaskFinishedLI, ScriptData.walkToCurrentAreaLI, ScriptData.miningLI }); // Mining
-        ScriptData.PIPELINES[5] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.checkLoadOutLI, ScriptData.progressionTaskFinishedLI, ScriptData.walkToCurrentAreaLI, ScriptData.attackTargetNPCLI, ScriptData.checkRangedCombatStyleLI, ScriptData.cantReachCurrentNPCLI, ScriptData.currentTileToTargetNPCTileLI, ScriptData.eatChosenFoodLI, ScriptData.findValidNPCTargetLI, ScriptData.lootNPCDropsLI }); // Ranged
-        ScriptData.PIPELINES[6] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.checkLoadOutLI, ScriptData.progressionTaskFinishedLI, new RunecraftLI(), new EnterRiftLI() }); // Runecrafting
-        ScriptData.PIPELINES[7] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.checkLoadOutLI, ScriptData.progressionTaskFinishedLI, ScriptData.walkToCurrentAreaLI, new InteractWithAnvilLI(), new SmithingLI() }); // Smithing
-        ScriptData.PIPELINES[8] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.checkLoadOutLI, ScriptData.progressionTaskFinishedLI, ScriptData.walkToCurrentAreaLI, ScriptData.woodcuttingLI }); // Woodcutting
+        ScriptData.PIPELINES[0] = new OneAreaPipeline(ScriptData.progressionTaskTimerFinishedLI, ScriptData.checkLoadOutLI, ScriptData.walkToCurrentAreaLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, new CookingLI()); // Cooking
+        ScriptData.PIPELINES[1] = new OneAreaPipeline(ScriptData.progressionTaskTimerFinishedLI, ScriptData.checkLoadOutLI, ScriptData.walkToCurrentAreaLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, new FiremakingLI()); // Firemaking
+        ScriptData.PIPELINES[2] = new OneAreaPipeline(ScriptData.progressionTaskTimerFinishedLI, ScriptData.checkLoadOutLI, ScriptData.walkToCurrentAreaLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, new FishingLI()); // Fishing
+        ScriptData.PIPELINES[3] = new OneAreaPipeline(ScriptData.progressionTaskTimerFinishedLI, ScriptData.checkLoadOutLI, ScriptData.walkToCurrentAreaLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, ScriptData.attackTargetNPCLI, ScriptData.checkMeleeCombatStyleLI, ScriptData.cantReachCurrentNPCLI, ScriptData.currentTileToTargetNPCTileLI, ScriptData.eatChosenFoodLI, ScriptData.findValidNPCTargetLI, ScriptData.lootNPCDropsLI); // Melee
+        ScriptData.PIPELINES[4] = new OneAreaPipeline(ScriptData.progressionTaskTimerFinishedLI, ScriptData.checkLoadOutLI, ScriptData.walkToCurrentAreaLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, new MiningLI()); // Mining
+        ScriptData.PIPELINES[5] = new OneAreaPipeline(ScriptData.progressionTaskTimerFinishedLI, ScriptData.checkLoadOutLI, ScriptData.walkToCurrentAreaLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, ScriptData.walkToCurrentAreaLI, ScriptData.attackTargetNPCLI, ScriptData.checkRangedCombatStyleLI, ScriptData.cantReachCurrentNPCLI, ScriptData.currentTileToTargetNPCTileLI, ScriptData.eatChosenFoodLI, ScriptData.findValidNPCTargetLI, ScriptData.lootNPCDropsLI); // Ranged
+        ScriptData.PIPELINES[6] = new BasicTaskPipeline(ScriptData.progressionTaskTimerFinishedLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, new RunecraftLI(), new EnterRiftLI()); // Runecrafting
+        ScriptData.PIPELINES[7] = new OneAreaPipeline(ScriptData.progressionTaskTimerFinishedLI, ScriptData.checkLoadOutLI, ScriptData.walkToCurrentAreaLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, new InteractWithAnvilLI(), new SmithingLI()); // Smithing
+        ScriptData.PIPELINES[8] = new OneAreaPipeline(ScriptData.progressionTaskTimerFinishedLI, ScriptData.checkLoadOutLI, ScriptData.walkToCurrentAreaLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, ScriptData.woodcuttingLI); // Woodcutting
 
-        ScriptData.PIPELINES[29] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.checkLoadOutLI, ScriptData.secondaryTaskFinishedLI, ScriptData.walkToCurrentAreaLI, ScriptData.woodcuttingLI }); // Chopping logs
-        ScriptData.PIPELINES[30] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.checkLoadOutLI, ScriptData.secondaryTaskFinishedLI, ScriptData.walkToCurrentAreaLI, ScriptData.miningLI }); // Mining ore
-        ScriptData.PIPELINES[31] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.checkLoadOutLI, ScriptData.secondaryTaskFinishedLI, ScriptData.walkToCurrentAreaLI, new SmeltBarsLI() }); // Smelting bars
-        ScriptData.PIPELINES[32] = new BasicTaskPipeline(new LoopInterceptor[] { ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.checkLoadOutLI, ScriptData.secondaryTaskFinishedLI, new CollectShears(), new SpinBallsOfWoolLI(), new ShearSheepLI() }); // Spinning Balls of Wool
+        ScriptData.PIPELINES[29] = new OneAreaPipeline(ScriptData.secondaryTaskTimerFinishedLI, ScriptData.checkLoadOutLI, ScriptData.walkToCurrentAreaLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, ScriptData.woodcuttingLI); // Chopping logs
+        ScriptData.PIPELINES[30] = new OneAreaPipeline(ScriptData.secondaryTaskTimerFinishedLI, ScriptData.checkLoadOutLI, ScriptData.walkToCurrentAreaLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, ScriptData.miningLI); // Mining ore
+        ScriptData.PIPELINES[31] = new OneAreaPipeline(ScriptData.secondaryTaskTimerFinishedLI, ScriptData.checkLoadOutLI, ScriptData.walkToCurrentAreaLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, new SmeltBarsLI()); // Smelting bars
+        ScriptData.PIPELINES[32] = new BasicTaskPipeline(ScriptData.secondaryTaskTimerFinishedLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.openInventoryLI, ScriptData.changePlayerSetUpLI, new CollectShears(), new SpinBallsOfWoolLI(), new ShearSheepLI()); // Spinning Balls of Wool
 
-        ScriptData.PIPELINES[33] = new DetermineTaskPipeline();
+        ScriptData.PIPELINES[33] = new DetermineTaskPipeline(new DetermineTaskLI());
         ScriptData.PIPELINES[34] = ScriptData.bankingPipeline;
-        ScriptData.PIPELINES[35] = new GrandExchangePipeline(new LoopInterceptor[] { ScriptData.changePlayerSetUpLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.buyItemsLI });
-        ScriptData.PIPELINES[36] = new GrandExchangePipeline(new LoopInterceptor[] { ScriptData.changePlayerSetUpLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.sellItemsLI });
+        ScriptData.PIPELINES[35] = new GrandExchangePipeline(ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.buyItemsLI);
+        ScriptData.PIPELINES[36] = new GrandExchangePipeline(ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.sellItemsLI);
     }
 
     private void initializeTaskWeights() {
@@ -580,6 +583,7 @@ public class SCScript extends AbstractScript implements ChatListener, Experience
             p.currentArea2 = ScriptData.currentArea2;
             p.currentArea3 = ScriptData.currentArea3;
             p.unPauseTimer = ScriptData.unPauseTimer;
+            p.unPauseSetUpClientTimer = ScriptData.unPauseSetUpClientTimer;
             p.changePlayerSetUpTimer = ScriptData.changePlayerSetUpTimer;
             p.playerSetUpOpts = ScriptData.playerSetUpOpts;
             p.playerSetUpValues = ScriptData.playerSetUpValues;
@@ -587,6 +591,7 @@ public class SCScript extends AbstractScript implements ChatListener, Experience
             ScriptData.sellItemsLI.exportToPersistedScriptInfo(p);
             ScriptData.buyItemsLI.exportToPersistedScriptInfo(p);
             ScriptData.checkLoadOutLI.exportToPersistedScriptInfo(p);
+            ScriptData.bankingPipeline.exportToPersistedScriptInfo(p);
             if (ScriptData.taskType == 1) {
                 ScriptData.TASK_LOAD_OUTS[ScriptData.currentSecondaryTaskI].exportToPersistedScriptInfo(p);
             }
@@ -637,6 +642,7 @@ public class SCScript extends AbstractScript implements ChatListener, Experience
                 ScriptData.currentArea2 = p.currentArea2;
                 ScriptData.currentArea3 = p.currentArea3;
                 ScriptData.unPauseTimer = p.unPauseTimer;
+                ScriptData.unPauseSetUpClientTimer = p.unPauseSetUpClientTimer;
                 ScriptData.changePlayerSetUpTimer = p.changePlayerSetUpTimer;
                 ScriptData.playerSetUpOpts = p.playerSetUpOpts;
                 ScriptData.playerSetUpValues = p.playerSetUpValues;
@@ -644,6 +650,7 @@ public class SCScript extends AbstractScript implements ChatListener, Experience
                 ScriptData.sellItemsLI.importFromPersistedScriptInfo(p);
                 ScriptData.buyItemsLI.importFromPersistedScriptInfo(p);
                 ScriptData.checkLoadOutLI.importFromPersistedScriptInfo(p);
+                ScriptData.bankingPipeline.importFromPersistedScriptInfo(p);
                 if (ScriptData.taskType == 1) {
                     ScriptData.TASK_LOAD_OUTS[ScriptData.currentSecondaryTaskI].importFromPersistedScriptInfo(p);
                 }
@@ -657,21 +664,62 @@ public class SCScript extends AbstractScript implements ChatListener, Experience
                     ScriptData.secondaryTaskTimer.resume();
                 }
                 ScriptData.unPauseTimer = 0;
-                if (ScriptData.currentProgressionTaskI > 8 && ScriptData.currentProgressionTaskI < 29) { // questing task, but re-instantiate pipeline + loadout
-                    ScriptData.buyItemsLI.reset();
-                    ScriptData.sellItemsLI.reset();
-                    ScriptData.withdrawLI.reset();
-                    ScriptData.depositLI.reset();
-                    ScriptData.currentPipelineI = 33;
-                    ScriptData.taskType = 3; // reInitialize
+                if (ScriptData.currentProgressionTaskI > 8 && ScriptData.currentProgressionTaskI < 29 && ScriptData.taskType == 0) { // questing task, but re-instantiate pipeline + loadout
+                    ScriptData.PIPELINES[ScriptData.currentPipelineI] = reInstantiateQuestPipeline();
                 }
                 Logger.log("deserialized PersistedScriptInfo from: " + file.getAbsolutePath());
                 Logger.log("currentPipelineI: " + ScriptData.currentPipelineI);
             }
             catch (Exception e) {
-                Logger.error("Failed to deSerialize PersistedScriptInfo");
+                Logger.error("Failed to deSerialize PersistedScriptInfo: " + e.getMessage());
             }
         }
+    }
+
+    private Pipeline reInstantiateQuestPipeline() {
+        switch (ScriptData.currentProgressionTaskI) {
+            case 9:  // Below Ice Mountain
+                return new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new BelowIceMountainLI());
+            case 10: // Black Knights' Fortress
+                return new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new BlackKnightsFortressLI());
+            case 11: // Cook's Assistant
+                return new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new CooksAssistantLI());
+            case 12: // Demon Slayer
+                return new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, new HandleDialogueDemonSlayerLI(), ScriptData.finishQuestLI, new PiratesTreasureLI());
+            case 13: // Doric's Quest
+                return new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new DoricsQuestLI());
+            case 14: // Ernest the Chicken
+                return new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new ErnestTheChickenLI());
+            case 15: // Goblin Diplomacy
+                return new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new GoblinDiplomacyLI());
+            case 16: // Imp Catcher
+                return new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new ImpCatcherLI());
+            case 17: // Misthalin Mystery
+                return new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new MisthalinMysteryLI());
+            case 18: // Pirate's Treasure
+                return new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, new HandleDialoguePiratesTreasureLI(), ScriptData.finishQuestLI, new PiratesTreasureLI());
+            case 19: // Prince Ali Rescue
+                return new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new PrinceAliRescueLI());
+            case 20: // Romeo and Juliet
+                return new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new RomeoAndJulietLI());
+            case 21: // Rune Mysteries
+                return new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new RuneMysteriesLI());
+            case 22: // Sheep Shearer
+                return new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new SheepShearerLI());
+            case 23: // The Corsair Curse
+                return new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new TheCorsairCurseLI());
+            case 24: // The Knight's Sword
+                return new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new TheKnightsSwordLI());
+            case 25: // The Restless Ghost
+                return new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new TheRestlessGhostLI());
+            case 26: // Vampyre Slayer
+                return new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new VampyreSlayerLI());
+            case 27: // Witch's Potion
+                return new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, ScriptData.finishQuestLI, new WitchsPotionLI());
+            case 28: // X Marks the Spot
+                return new QuestPipeline(ScriptData.inCutsceneLI, ScriptData.checkLoadOutLI, ScriptData.continueDialogueLI, ScriptData.dialogueOptionsLI, new FinishQuestXMarksTheSpotLI(), new XMarksTheSpotLI());
+        }
+        return null;
     }
 
 }

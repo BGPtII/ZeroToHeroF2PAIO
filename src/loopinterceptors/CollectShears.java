@@ -10,7 +10,7 @@ import org.dreambot.api.utilities.Sleep;
 public class CollectShears extends LoopInterceptor {
 
     public CollectShears() {
-        super(() -> ScriptData.NOT_HANDLE_LOAD_OUT.verify() && !Inventory.contains(1735));
+        super(() -> !Inventory.contains(1735));
     }
 
     @Override
